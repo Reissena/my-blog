@@ -1,0 +1,9 @@
+# 仅供本地 / Harness 内嵌预览使用：生产构建（Cloudflare Pages）不加载这个文件。
+#
+# 预览时站点挂在 Harness 的同源子路径 /blog-preview/ 下（由 dsh-blog-preview
+# 插件反向代理）。PaperMod 输出的 CSS/JS 是根相对路径（/assets/...），在子路径
+# 下会指向 Harness 自己的根而 404；relativeURLs 让 Hugo 把它们输出成相对当前
+# 页面的路径，因此挂到任意子路径都能正确加载。
+#
+# 用法：hugo server --config hugo.toml,preview.toml
+relativeURLs = true
