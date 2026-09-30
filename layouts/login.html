@@ -1,0 +1,76 @@
+{{- /* =====================================================================
+    /login/ 登录页（layout: login，见 content/login.md）
+    纯静态站点的「前端门禁式」登录：表单在浏览器里用 PBKDF2 校验口令哈希，
+    通过后把登录态写进 localStorage / sessionStorage。
+    逻辑在 assets/js/auth.js，这里只负责结构与文案。
+   ===================================================================== */ -}}
+{{- define "main" }}
+
+<header class="page-header">
+    <h1>{{ .Title }}</h1>
+    {{- if .Description }}
+    <div class="post-description">{{ .Description }}</div>
+    {{- end }}
+</header>
+
+<article class="auth-card">
+    {{- /* 未登录：登录表单 */}}
+    <form id="auth-form" class="auth-form" method="post" action="{{ .RelPermalink }}" novalidate>
+        <label class="auth-field" for="auth-username">
+            <span class="auth-label">用户名</span>
+            <input id="auth-username" name="username" type="text" autocomplete="username" spellcheck="false"
+                autocapitalize="off" placeholder="请输入用户名" required>
+        </label>
+
+        <label class="auth-field" for="auth-password">
+            <span class="auth-label">密码</span>
+            <input id="auth-password" name="password" type="password" autocomplete="current-password"
+                placeholder="请输入密码" required>
+        </label>
+
+        <div class="auth-row">
+            <label class="auth-remember" for="auth-remember">
+                <input id="auth-remember" type="checkbox" checked>
+                <span>记住我（30 天内免登录）</span>
+            </label>
+            <button type="button" class="auth-linkbtn" id="auth-reset" title="清空失败计数">重置尝试次数</button>
+        </div>
+
+        <p class="auth-error" id="auth-error" role="alert" hidden></p>
+        <p class="auth-hint" id="auth-redirect-hint" hidden></p>
+
+        <button class="auth-submit" id="auth-submit" type="submit">登录</button>
+    </form>
+
+    {{- /* 已登录：状态面板（由 auth.js 切换显示） */}}
+    <div class="auth-done" id="auth-done" hidden>
+        <p class="auth-done-title">✅ 你已登录为 <strong id="auth-done-user"></strong></p>
+        <p class="auth-done-desc">会员内容已经解锁，可以直接访问「会员专区」。</p>
+        <p class="auth-done-actions">
+            <a class="auth-submit" href="{{ "private/" | relURL }}">进入会员专区 →</a>
+            <button type="button" class="auth-secondary" data-auth-logout>退出登录</button>
+        </p>
+    </div>
+
+    <noscript>
+        <p class="auth-error">本站登录依赖 JavaScript，请在浏览器里启用 JavaScript 后刷新本页。</p>
+    </noscript>
+</article>
+
+<section class="auth-note">
+    <h2>关于这个登录模块</h2>
+    <ul>
+        <li>口令不会明文保存：<code>hugo.toml</code> 里存的是 <b>PBKDF2-SHA256 加盐哈希</b>（150000 次迭代）。</li>
+        <li>校验完全在浏览器本地完成，静态托管（GitHub Pages / Cloudflare Pages / Netlify / Vercel）都能用。</li>
+        <li>它挡的是「随手点进来的人」，挡不住会看网页源码或用 devtools 改本地存储的人 —— 详见仓库根目录的 <code>DEPLOY.md</code>。</li>
+        <li>退出登录：点页头右侧用户名旁边的「退出」。</li>
+    </ul>
+    {{- /* 想换密码？两种办法（命令都在仓库根目录执行）：
+         ① 推荐：node tools/hash-password.mjs --user member
+            把输出的 salt / hash / iterations 覆盖 hugo.toml 里对应账号的三行。
+         ② 临时在浏览器控制台生成：
+            BlogAuth.hashPassword("新密码", "16字节16进制盐", 150000).then(console.log)
+       */ -}}
+</section>
+
+{{- end }}{{/* end main */}}

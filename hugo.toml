@@ -65,6 +65,39 @@ enableRobotsTXT = true
     name = "rss"
     url = "index.xml"
 
+# ============================================================
+# 登录模块（前端门禁式，实现见 layouts/ + assets/js/auth.js）
+# 完整说明与安全边界见 DEPLOY.md
+#   1) 口令以 PBKDF2-SHA256 加盐哈希保存，配置里没有明文；
+#   2) 换密码：node tools/hash-password.mjs --user member
+#      然后把输出的 salt / hash / iterations 替换掉即可；
+#   3) enabled = false 可一键关掉页头入口与门禁跳转。
+# ============================================================
+[params.auth]
+  enabled = true
+  sessionHours = 12         # 不勾「记住我」时的登录有效期（小时）
+  rememberDays = 30         # 勾选「记住我」时的登录有效期（天）
+  maxAttempts = 5           # 连续输错几次后进入冷却
+  cooldownMs = 5000         # 冷却时长（毫秒）
+  loginPath = "login/"      # 登录页路径（相对站点根，会自动拼上 baseURL 的子路径）
+  membersPath = "private/"  # 会员栏目路径
+
+# 测试账号 ①：member / papermod123
+[[params.auth.users]]
+  username = "member"
+  displayName = "会员读者"
+  salt = "30c9f894189e8cd23d3534b9a887aa36"
+  hash = "21e6cdd6f69376ec51a44a3f709f6455fe5265342adee72d3ac05503c8694cdd"
+  iterations = 150000
+
+# 测试账号 ②：admin / admin@2026
+[[params.auth.users]]
+  username = "admin"
+  displayName = "站长"
+  salt = "d302732b3843682751f6d39aae70e9ed"
+  hash = "f490c5dcc4f64993e88517d76247e24acb5a7989051974fc5e8c71e8315e6f09"
+  iterations = 150000
+
 [menu]
   [[menu.main]]
     identifier = "posts"
