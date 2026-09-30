@@ -12,3 +12,6 @@ Thumbs.db
 
 # 本地环境文件
 .env
+
+# Hugo cache
+.hugo_cache/
