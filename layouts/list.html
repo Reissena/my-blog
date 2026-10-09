@@ -11,7 +11,14 @@
 {{- define "main" }}
 
 {{- $pages := .RegularPages }}
-{{- $paginator := .Paginate $pages }}
+{{- /* 置顶：pinned: true 的排最前，其余按日期倒序；没有置顶时结果与以前完全一致。
+       （右侧栏「最新文章」是单独的 partial，按日期取，不受这里影响。） */ -}}
+{{- $pinned := where $pages "Params.pinned" true }}
+{{- $list := $pinned }}
+{{- range where $pages "Params.pinned" "!=" true }}
+    {{- $list = $list | append . }}
+{{- end }}
+{{- $paginator := .Paginate $list }}
 
 <div class="fc-layout">
     {{- partial "site_nav.html" . }}

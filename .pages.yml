@@ -32,7 +32,7 @@ content:
     filename: "{year}-{month}-{day}-{fields.title}.md"
     media: images
     view:
-      fields: [title, date, draft, tags]
+      fields: [title, date, draft, pinned, tags]
       primary: title
       default:
         sort: date
@@ -52,6 +52,11 @@ content:
 
       - name: draft
         label: 草稿（勾选后不会发布到线上）
+        type: boolean
+        default: false
+
+      - name: pinned
+        label: 置顶（勾选后固定在文章列表最前）
         type: boolean
         default: false
 

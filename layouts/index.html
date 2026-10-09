@@ -10,7 +10,15 @@
 {{- define "main" }}
 
 {{- $posts := where site.RegularPages "Type" "in" site.Params.mainSections }}
-{{- $paginator := .Paginate $posts }}
+{{- /* 置顶：front matter 里 pinned: true 的排最前，其余保持原顺序（日期倒序）跟在后面。
+       没有置顶文章时 $pinned 为空，$sorted 与 $posts 完全一致 —— 顺序和以前一模一样，
+       也不会漏文章。排序放在 Paginate 之前，所以分页也跟着正确。 */ -}}
+{{- $pinned := where $posts "Params.pinned" true }}
+{{- $sorted := $pinned }}
+{{- range where $posts "Params.pinned" "!=" true }}
+    {{- $sorted = $sorted | append . }}
+{{- end }}
+{{- $paginator := .Paginate $sorted }}
 
 <div class="fc-layout fc-layout--home">
     {{- partial "site_nav.html" . }}

@@ -369,6 +369,34 @@ body::after {
     transition: transform 0.4s ease;
 }
 
+/* 置顶徽章：压在封面左上角（.fc-card-cover 已经是 position: relative）
+   底色走玻璃令牌、文字用强调色 —— 深浅色模式都跟着主题走，不硬编码颜色 */
+.fc-pin {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px 3px 8px;
+    border: 1px solid var(--fc-glass-stroke);
+    border-radius: var(--fc-radius-pill);
+    background: var(--fc-glass-bg-strong);
+    -webkit-backdrop-filter: var(--fc-blur);
+    backdrop-filter: var(--fc-blur);
+    box-shadow: var(--fc-shadow);
+    color: var(--fc-accent);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: .3px;
+    line-height: 1.55;
+}
+
+.fc-pin svg {
+    width: 13px;
+    height: 13px;
+}
+
 .fc-card:hover .fc-card-cover img,
 .fc-card:focus-within .fc-card-cover img {
     transform: scale(1.03);
