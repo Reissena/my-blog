@@ -41,36 +41,60 @@
             </section>
         </div>
 
-        {{- /* 底部整宽「目录」（替代参考页那个乐迷留言板的位置，我们不做留言板）。
-               它就是播放列表本体：id 仍是 #fc-playlist，所以播放器脚本照旧绑定、
-               点击即切歌、当前曲目高亮；只是从左侧移到了底部、并补上时长与播放状态。
-               DOM 顺序放在最后 → 窄屏堆叠顺序自然是「播放器 → 歌词 → 目录」。 */ -}}
+        {{- /* 底部整宽「目录」：网易云那种歌单列表（表格化的行，不是卡片网格）。
+               播放器脚本依赖的钩子一个都没动：
+                 · 容器 id 仍是 fc-playlist
+                 · 每行仍是 <button data-track="i">，行内仍有 [data-state] 状态位
+                 · 当前曲目仍靠 is-current 类（脚本还会加 is-playing，跳动竖线据此启停）
+                 · 时长仍由 data/music.yaml 的 duration 在构建期渲染（无 JS 也在）
+               所以 music-player.js 一行都不用改。 */ -}}
         <section class="fc-catalog fc-glass" aria-labelledby="fc-catalog-title">
             <div class="fc-catalog-head">
                 <h2 class="fc-catalog-title" id="fc-catalog-title">目录</h2>
                 <span class="fc-catalog-hint">点任意一首即可切换播放</span>
             </div>
-            <ol class="fc-catalog-items" id="fc-playlist">
-                {{- range $i, $t := $music }}
-                <li>
-                    <button type="button" class="fc-catalog-item{{ if eq $i 0 }} is-current{{ end }}"
-                        data-track="{{ $i }}" aria-label="播放 {{ $t.title }}">
-                        <img class="fc-catalog-cover" src="{{ partial "music_url.html" $t.cover }}" alt=""
-                            width="48" height="48" loading="lazy" decoding="async">
-                        <span class="fc-catalog-text">
-                            <span class="fc-catalog-name">{{ $t.title }}</span>
-                            <span class="fc-catalog-artist">{{ $t.artist }}</span>
-                        </span>
-                        <span class="fc-catalog-meta">
-                            {{- with $t.duration }}
-                            <span class="fc-catalog-time">{{ printf "%d:%02d" (div . 60) (mod . 60) }}</span>
-                            {{- end }}
-                            <span class="fc-catalog-state" data-state hidden></span>
-                        </span>
-                    </button>
-                </li>
-                {{- end }}
-            </ol>
+
+            <div class="fc-songlist">
+                {{- /* 轻量表头 */ -}}
+                <div class="fc-songlist-head" aria-hidden="true">
+                    <span class="fc-songlist-cidx">#</span>
+                    <span class="fc-songlist-ccover"></span>
+                    <span class="fc-songlist-cname">标题</span>
+                    <span class="fc-songlist-ctime">时长</span>
+                </div>
+
+                <ol class="fc-songlist-body" id="fc-playlist">
+                    {{- range $i, $t := $music }}
+                    <li>
+                        <button type="button" class="fc-songlist-row{{ if eq $i 0 }} is-current{{ end }}"
+                            data-track="{{ $i }}" aria-label="播放 {{ $t.title }}">
+                            {{- /* 序号列：普通数字 / 当前曲目的跳动竖线 / 悬停浮出的播放按钮，三者同位切换 */ -}}
+                            <span class="fc-songlist-idx">
+                                <span class="fc-songlist-num">{{ add $i 1 }}</span>
+                                <span class="fc-songlist-bars" aria-hidden="true"><i></i><i></i><i></i></span>
+                                <span class="fc-songlist-play" aria-hidden="true">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M8 5.5v13l11-6.5z" />
+                                    </svg>
+                                </span>
+                            </span>
+                            <img class="fc-songlist-cover" src="{{ partial "music_url.html" $t.cover }}" alt=""
+                                width="36" height="36" loading="lazy" decoding="async">
+                            <span class="fc-songlist-text">
+                                <span class="fc-songlist-name">{{ $t.title }}</span>
+                                <span class="fc-songlist-artist">{{ $t.artist }}</span>
+                            </span>
+                            <span class="fc-songlist-meta">
+                                {{- with $t.duration }}
+                                <span class="fc-songlist-time">{{ printf "%d:%02d" (div . 60) (mod . 60) }}</span>
+                                {{- end }}
+                                <span class="fc-songlist-state" data-state hidden></span>
+                            </span>
+                        </button>
+                    </li>
+                    {{- end }}
+                </ol>
+            </div>
         </section>
     </div>
 </div>

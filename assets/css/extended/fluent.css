@@ -2706,25 +2706,44 @@ body.fc-has-mini .fc-statusbar-wrap {
     font-size: 12px;
 }
 
-/* 自动换行：宽屏一行 3 张，窄屏变 1 张（minmax 下限 228px > 手机可用宽度） */
-.fc-catalog-items {
+/* 歌单列表（网易云那种）：一行一首、整行可点。
+   表头与数据行共用同一套 grid 列宽，所以列一定对齐。 */
+.fc-songlist {
+    --fc-songlist-cols: 44px 36px minmax(0, 1fr) 96px;
+}
+
+.fc-songlist-head,
+.fc-songlist-row {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(228px, 1fr));
-    gap: 8px;
+    grid-template-columns: var(--fc-songlist-cols);
+    gap: 12px;
+    align-items: center;
+}
+
+.fc-songlist-head {
+    padding: 0 8px 8px;
+    border-bottom: 1px solid var(--fc-glass-stroke);
+    color: var(--secondary);
+    font-size: 12px;
+}
+
+.fc-songlist-ctime {
+    text-align: right;
+}
+
+.fc-songlist-body {
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
-.fc-catalog-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.fc-songlist-row {
     width: 100%;
-    min-height: 56px;   /* 触摸目标 ≥40px */
-    padding: 7px 10px;
+    min-height: 60px;   /* 舒适行高 */
+    padding: 6px 8px;
     border: 0;
-    border-radius: 10px;
+    border-bottom: 1px solid var(--fc-glass-stroke);   /* 行间 1px 淡分隔线（主题令牌） */
+    border-radius: 0;
     background: transparent;
     color: inherit;
     font: inherit;
@@ -2732,29 +2751,136 @@ body.fc-has-mini .fc-statusbar-wrap {
     cursor: pointer;
 }
 
-.fc-catalog-cover {
-    flex: none;
-    width: 48px;
-    height: 48px;
-    border-radius: 8px;
+.fc-songlist-body li:last-child .fc-songlist-row {
+    border-bottom: 0;
+}
+
+.fc-songlist-row:hover {
+    background: var(--fc-accent-soft);
+}
+
+.fc-songlist-row:focus-visible {
+    outline: 2px solid var(--fc-accent);
+    outline-offset: -2px;
+}
+
+/* 序号列：普通数字 / 当前曲目的跳动竖线 / 悬停浮出的播放按钮，同一格切换 */
+.fc-songlist-idx {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    color: var(--secondary);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+
+.fc-songlist-play {
+    display: none;
+    color: var(--primary);
+}
+
+.fc-songlist-play svg {
+    display: block;
+    width: 16px;
+    height: 16px;
+}
+
+/* 三条竖线：默认静止（不跳），只有正在播的那首才启停动画 */
+.fc-songlist-bars {
+    display: none;
+    align-items: flex-end;
+    gap: 2px;
+    height: 14px;
+}
+
+.fc-songlist-bars i {
+    width: 2px;
+    height: 100%;
+    border-radius: 1px;
+    background: var(--fc-accent);
+    transform: scaleY(.45);
+    transform-origin: bottom;
+    animation: none;
+}
+
+.fc-songlist-row.is-current .fc-songlist-num {
+    display: none;
+}
+
+.fc-songlist-row.is-current .fc-songlist-bars {
+    display: flex;
+}
+
+/* 当前曲目的歌名用强调色 */
+.fc-songlist-row.is-current .fc-songlist-name {
+    color: var(--fc-accent);
+}
+
+/* 播放中：三条竖线高低跳动（错开时长与延迟，看起来才像网易云那个） */
+.fc-songlist-row.is-playing .fc-songlist-bars i:nth-child(1) {
+    animation: fc-eq .8s ease-in-out infinite;
+    animation-delay: -.6s;
+}
+
+.fc-songlist-row.is-playing .fc-songlist-bars i:nth-child(2) {
+    animation: fc-eq 1.05s ease-in-out infinite;
+    animation-delay: -.2s;
+}
+
+.fc-songlist-row.is-playing .fc-songlist-bars i:nth-child(3) {
+    animation: fc-eq .7s ease-in-out infinite;
+    animation-delay: -.45s;
+}
+
+@keyframes fc-eq {
+
+    0%,
+    100% {
+        transform: scaleY(.35);
+    }
+
+    50% {
+        transform: scaleY(1);
+    }
+}
+
+/* 悬停 / 键盘聚焦：序号（或竖线）隐去，原位浮出播放按钮 */
+.fc-songlist-row:hover .fc-songlist-num,
+.fc-songlist-row:hover .fc-songlist-bars,
+.fc-songlist-row:focus-visible .fc-songlist-num,
+.fc-songlist-row:focus-visible .fc-songlist-bars {
+    display: none;
+}
+
+.fc-songlist-row:hover .fc-songlist-play,
+.fc-songlist-row:focus-visible .fc-songlist-play {
+    display: block;
+}
+
+.fc-songlist-cover {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
     object-fit: cover;
 }
 
-.fc-catalog-text {
+.fc-songlist-text {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
     min-width: 0;
 }
 
-.fc-catalog-name {
+.fc-songlist-name {
     overflow: hidden;
-    font-size: 13.5px;
+    color: var(--primary);
+    font-size: 14.5px;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.fc-catalog-artist {
+.fc-songlist-artist {
     overflow: hidden;
     color: var(--secondary);
     font-size: 12px;
@@ -2762,23 +2888,21 @@ body.fc-has-mini .fc-statusbar-wrap {
     white-space: nowrap;
 }
 
-.fc-catalog-meta {
+.fc-songlist-meta {
     display: flex;
-    flex: none;
     flex-direction: column;
     align-items: flex-end;
     gap: 2px;
-    margin-left: auto;
 }
 
-.fc-catalog-time {
+.fc-songlist-time {
     color: var(--secondary);
-    font-size: 12px;
+    font-size: 13px;
     font-variant-numeric: tabular-nums;
 }
 
 /* 播放状态：只有当前曲目显示「播放中 / 已暂停」（文字由播放器脚本填） */
-.fc-catalog-state {
+.fc-songlist-state {
     padding: 1px 7px;
     border-radius: var(--fc-radius-pill);
     background: var(--fc-accent-soft);
@@ -2787,31 +2911,8 @@ body.fc-has-mini .fc-statusbar-wrap {
     white-space: nowrap;
 }
 
-.fc-catalog-state[hidden] {
+.fc-songlist-state[hidden] {
     display: none;
-}
-
-.fc-catalog-item:hover {
-    background: var(--fc-accent-soft);
-}
-
-.fc-catalog-item.is-current {
-    background: var(--fc-accent-soft);
-    box-shadow: inset 0 0 0 1px var(--fc-glass-stroke);
-}
-
-.fc-catalog-item.is-current .fc-catalog-name {
-    color: var(--fc-accent);
-    font-weight: 600;
-}
-
-.fc-catalog-item.is-current .fc-catalog-time {
-    color: var(--fc-accent);
-}
-
-/* 正在响的那首：缩略图加一圈强调色 */
-.fc-catalog-item.is-playing .fc-catalog-cover {
-    box-shadow: 0 0 0 2px var(--fc-accent);
 }
 
 /* 播放器脚本会把 audio 挂到 body 上（保证「页面上只有一个 <audio>」），
@@ -2904,6 +3005,19 @@ body.fc-has-mini .fc-statusbar-wrap {
     .fc-lyrics-item {
         transition: none;
     }
+
+    /* 三条竖线不跳，但保持「当前曲目」的视觉标记（静止的强调色短线）。
+       这里必须带上 :nth-child，否则选择器权重低于上面那三条带动画的规则。 */
+    .fc-songlist-row.is-playing .fc-songlist-bars i,
+    .fc-songlist-row.is-playing .fc-songlist-bars i:nth-child(1),
+    .fc-songlist-row.is-playing .fc-songlist-bars i:nth-child(2),
+    .fc-songlist-row.is-playing .fc-songlist-bars i:nth-child(3) {
+        animation: none;
+    }
+
+    .fc-songlist-bars i {
+        transform: scaleY(.7);
+    }
 }
 
 /* 窄屏：上下堆叠（播放器在上、歌词在下），封面收一档 */
@@ -2933,7 +3047,45 @@ body.fc-has-mini .fc-statusbar-wrap {
         font-size: 22px;
     }
 
-    .fc-catalog-items {
-        grid-template-columns: minmax(0, 1fr);
+    /* 手机版学网易云：更紧凑、隐藏封面列（列模板同时少一列，否则会错位）、
+       行高压到 48px（仍 ≥40px 触摸目标）、时长保留 */
+    .fc-songlist {
+        --fc-songlist-cols: 30px minmax(0, 1fr) 62px;
+    }
+
+    .fc-songlist-head,
+    .fc-songlist-row {
+        gap: 10px;
+    }
+
+    .fc-songlist-head {
+        padding: 0 6px 6px;
+    }
+
+    .fc-songlist-cover,
+    .fc-songlist-ccover {
+        display: none;
+    }
+
+    .fc-songlist-row {
+        min-height: 48px;
+        padding: 5px 6px;
+    }
+
+    .fc-songlist-name {
+        font-size: 13.5px;
+    }
+
+    .fc-songlist-artist {
+        font-size: 11.5px;
+    }
+
+    .fc-songlist-time {
+        font-size: 12px;
+    }
+
+    .fc-songlist-state {
+        padding: 0 5px;
+        font-size: 10px;
     }
 }
