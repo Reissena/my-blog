@@ -19,13 +19,13 @@
     --fc-radius-inner: 12px;
     --fc-radius-pill: 999px;
 
-    --fc-glass-bg: rgba(255, 255, 255, 0.72);
-    --fc-glass-bg-strong: rgba(255, 255, 255, 0.88);
+    --fc-glass-bg: rgba(255, 255, 255, 0.88);
+    --fc-glass-bg-strong: rgba(255, 255, 255, 0.94);
     --fc-glass-stroke: rgba(255, 255, 255, 0.60);
     --fc-glass-stroke-hover: rgba(15, 108, 189, 0.38);
     --fc-shadow: 0 10px 30px rgba(15, 23, 42, 0.10);
     --fc-shadow-hover: 0 16px 40px rgba(15, 23, 42, 0.16);
-    --fc-blur: blur(20px) saturate(1.8);
+    --fc-blur: blur(6px) saturate(1.4);
 
     /* 头像：圆角方块外的一圈细边，保证在浅色背景上也看得清 */
     --fc-avatar-stroke: rgba(0, 0, 0, 0.08);
@@ -41,8 +41,8 @@
 }
 
 [data-theme="dark"] {
-    --fc-glass-bg: rgba(32, 32, 32, 0.72);
-    --fc-glass-bg-strong: rgba(46, 46, 46, 0.88);
+    --fc-glass-bg: rgba(32, 32, 32, 0.88);
+    --fc-glass-bg-strong: rgba(46, 46, 46, 0.94);
     --fc-glass-stroke: rgba(255, 255, 255, 0.09);
     --fc-glass-stroke-hover: rgba(96, 205, 255, 0.35);
     --fc-shadow: 0 10px 30px rgba(0, 0, 0, 0.40);
@@ -75,7 +75,12 @@ body::before {
     background-attachment: fixed;
 }
 
-/* 可读性遮罩：浅色下压白、深色下压黑，保证任何底图上文字都够清晰 */
+/* 可读性遮罩：浅色下压白、深色下压黑，保证任何底图上文字都够清晰。
+   渐变的中间段（45%~56%）是最透的，因为正文都装在玻璃卡里、有卡片底色兜底；
+   最下段（70% 起）反过来要压得更实 —— 页脚那一行 12px 灰字（--secondary）
+   是**唯一**直接压在背景图上、又没有卡片托底的次要文字，实测在最透的 0.47/0.55
+   下只有 1.57:1 / 1.88:1，所以底部按实测需要收回 0.80 / 0.75。
+   （页脚状态栏 .fc-statusbar 自带 .fc-glass，不受影响。） */
 body::after {
     content: "";
     position: fixed;
@@ -83,16 +88,18 @@ body::after {
     z-index: -1;
     pointer-events: none;
     background: linear-gradient(180deg,
-            rgba(246, 249, 253, 0.80) 0%,
-            rgba(246, 249, 253, 0.62) 45%,
-            rgba(246, 249, 253, 0.80) 100%);
+            rgba(246, 249, 253, 0.65) 0%,
+            rgba(246, 249, 253, 0.47) 45%,
+            rgba(246, 249, 253, 0.47) 56%,
+            rgba(246, 249, 253, 0.80) 70%);
 }
 
 [data-theme="dark"] body::after {
     background: linear-gradient(180deg,
-            rgba(10, 12, 16, 0.82) 0%,
-            rgba(10, 12, 16, 0.68) 45%,
-            rgba(10, 12, 16, 0.82) 100%);
+            rgba(10, 12, 16, 0.67) 0%,
+            rgba(10, 12, 16, 0.55) 45%,
+            rgba(10, 12, 16, 0.55) 56%,
+            rgba(10, 12, 16, 0.75) 70%);
 }
 
 /* 主题给 .list（列表类页面）铺了不透明底色，这里全部让位给背景图 */
