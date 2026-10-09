@@ -171,13 +171,13 @@
      ===================================================================== */ -}}
 {{- $clarity := int (site.Params.bgClarityDefault | default 40) -}}
 {{- if lt $clarity 0 }}{{ $clarity = 0 }}{{ end -}}
-{{- if gt $clarity 70 }}{{ $clarity = 70 }}{{ end -}}
+{{- if gt $clarity 100 }}{{ $clarity = 100 }}{{ end -}}
 <div class="fc-clarity fc-glass" id="fc-clarity" data-default="{{ $clarity }}">
     <span class="fc-clarity-label" aria-hidden="true">清晰度</span>
     <span class="fc-clarity-track">
-        <input class="fc-clarity-range" id="fc-clarity-range" type="range" min="0" max="70" step="1"
+        <input class="fc-clarity-range" id="fc-clarity-range" type="range" min="0" max="100" step="1"
             value="{{ $clarity }}" role="slider" aria-orientation="vertical" aria-label="背景清晰度"
-            aria-valuemin="0" aria-valuemax="70" aria-valuenow="{{ $clarity }}" title="背景清晰度（0~70）">
+            aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ $clarity }}" title="背景清晰度（0~100）">
     </span>
     <output class="fc-clarity-value" id="fc-clarity-value" for="fc-clarity-range">{{ $clarity }}</output>
 </div>

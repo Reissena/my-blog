@@ -28,7 +28,7 @@
        fluent.css 里的兜底值；滑块拖动时 JS 只在 <html> 上加一条内联样式覆盖它。 */ -}}
 {{- $clarity := int (site.Params.bgClarityDefault | default 40) -}}
 {{- if lt $clarity 0 }}{{ $clarity = 0 }}{{ end -}}
-{{- if gt $clarity 70 }}{{ $clarity = 70 }}{{ end -}}
+{{- if gt $clarity 100 }}{{ $clarity = 100 }}{{ end -}}
 <style>:root{--fc-clarity:{{ $clarity }}}</style>
 
 {{- /* 浏览器原生预取（Speculation Rules）：hover / 按下时提前取站内页面，
