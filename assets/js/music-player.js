@@ -126,6 +126,8 @@
             lyricSub: document.querySelector('#fc-lyric [data-lyric="sub"]'),
             lyricPrev: document.querySelector('#fc-lyric [data-lyric="prev"]'),
             lyricNext: document.querySelector('#fc-lyric [data-lyric="next"]'),
+            lyricsFull: document.getElementById('fc-lyrics-full'),
+            playlist: document.getElementById('fc-playlist'),
             mini: document.getElementById('fc-mini'),
             miniCover: document.getElementById('fc-mini-cover'),
             miniTitle: document.getElementById('fc-mini-title'),
@@ -157,6 +159,7 @@
         if (dom.miniCover) { dom.miniCover.src = t.cover; }
         if (dom.miniTitle) { dom.miniTitle.textContent = t.title; }
         if (dom.miniArtist) { dom.miniArtist.textContent = t.artist; }
+        syncPlaylist();
     }
 
     function setPlayingUI() {
@@ -272,6 +275,7 @@
     function paintLyrics() {
         if (!dom.lyricCur) { return; }
         var t = current();
+        renderFullLyrics();   // 音乐页的整页歌词面板（同一份歌词数据，换歌才重建）
         if (!lyrics.lines.length) {
             var msg = '暂无歌词';
             if (failed) { msg = '音频加载失败'; }
@@ -281,6 +285,7 @@
             setLine(dom.lyricMain || dom.lyricCur, msg, true);
             if (dom.lyricSub) { dom.lyricSub.textContent = ''; dom.lyricSub.classList.add('is-empty'); }
             setLine(dom.lyricNext, '');
+            highlightFullLyrics();
             return;
         }
         var i = lyrics.idx < 0 ? 0 : lyrics.idx;
@@ -293,6 +298,7 @@
             if (L[i].sub) { restart(dom.lyricSub); }
         }
         setLine(dom.lyricNext, i + 1 < L.length ? L[i + 1].text : '');
+        highlightFullLyrics();
     }
 
     function updateLyric() {
@@ -392,12 +398,114 @@
         });
     }
 
+    /* --------------- 音乐页（/music/）的整页歌词面板 + 播放列表 ------------------
+       都只是「同一个播放器状态」的另外两个视图：这里绝不新建 audio，
+       所有切歌都走下面这个 load()，所以首页大卡 / 迷你条 / 音乐页大卡
+       永远是同一个 <audio> 在响。 */
+    var fullLyricsKey = null;
+    var mqReduce = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+
+    function fullLyricsPlaceholder(t) {
+        if (failed) { return '音频加载失败'; }
+        if (t.instrumental) { return '纯音乐，请欣赏'; }
+        if (lyrics.loading) { return '歌词加载中…'; }
+        return '暂无歌词';
+    }
+
+    /* 整页歌词：换歌（或歌词刚加载出来）才重建，同一首歌不重建 —— 保住滚动位置 */
+    function renderFullLyrics() {
+        var box = dom.lyricsFull;
+        if (!box) { fullLyricsKey = null; return; }
+        var t = current();
+        var key = t.id + '|' + (lyrics.loading ? 'loading' : (lyrics.lines.length ? 'n' + lyrics.lines.length : 'none'));
+        if (key === fullLyricsKey) { return; }
+        fullLyricsKey = key;
+        box.innerHTML = '';
+
+        if (!lyrics.lines.length) {
+            var p = document.createElement('p');
+            p.className = 'fc-lyrics-placeholder';
+            p.textContent = fullLyricsPlaceholder(t);
+            box.appendChild(p);
+            return;
+        }
+
+        var frag = document.createDocumentFragment();
+        lyrics.lines.forEach(function (L, i) {
+            var row = document.createElement('p');
+            row.className = 'fc-lyrics-item';
+            row.setAttribute('data-i', String(i));
+            var main = document.createElement('span');
+            main.className = 'fc-lyrics-text';
+            main.textContent = L.text;
+            row.appendChild(main);
+            if (L.sub) {
+                var sub = document.createElement('span');
+                sub.className = 'fc-lyrics-sub';
+                sub.textContent = L.sub;
+                row.appendChild(sub);
+            }
+            frag.appendChild(row);
+        });
+        box.appendChild(frag);
+    }
+
+    /* 当前句高亮 + 平滑滚到面板中间（只滚面板自己，不动页面） */
+    function highlightFullLyrics() {
+        var box = dom.lyricsFull;
+        if (!box) { return; }
+        var items = box.querySelectorAll('.fc-lyrics-item');
+        if (!items.length) { return; }
+        var i = lyrics.lines.length ? (lyrics.idx < 0 ? 0 : lyrics.idx) : -1;
+        [].forEach.call(items, function (el, k) { el.classList.toggle('is-current', k === i); });
+        if (i < 0 || !items[i]) { return; }
+
+        var el = items[i];
+        var max = box.scrollHeight - box.clientHeight;
+        var target = el.offsetTop - box.clientHeight / 2 + el.offsetHeight / 2;
+        if (target < 0) { target = 0; }
+        if (target > max) { target = max; }
+        if (Math.abs(box.scrollTop - target) < 2) { return; }
+        var smooth = !(mqReduce && mqReduce.matches);
+        if (box.scrollTo) {
+            try { box.scrollTo({ top: target, behavior: smooth ? 'smooth' : 'auto' }); return; } catch (e) { /* 老浏览器 */ }
+        }
+        box.scrollTop = target;
+    }
+
+    /* 播放列表：当前曲目高亮 */
+    function syncPlaylist() {
+        var box = dom.playlist;
+        if (!box) { return; }
+        [].forEach.call(box.querySelectorAll('[data-track]'), function (el) {
+            var on = Number(el.getAttribute('data-track')) === index;
+            el.classList.toggle('is-current', on);
+            if (on) { el.setAttribute('aria-current', 'true'); } else { el.removeAttribute('aria-current'); }
+        });
+    }
+
+    /* 播放列表：点一下切歌（走同一个 load()，不新建播放器） */
+    function bindPlaylist() {
+        var box = dom.playlist;
+        if (!box || box.dataset.fcBound) { return; }
+        box.dataset.fcBound = '1';
+        box.addEventListener('click', function (e) {
+            var btn = e.target && e.target.closest ? e.target.closest('[data-track]') : null;
+            if (!btn) { return; }
+            var i = Number(btn.getAttribute('data-track'));
+            if (isNaN(i)) { return; }
+            if (i === index) { togglePlay(); return; }   // 点当前这首 = 播放/暂停
+            load(i, { play: true });
+        });
+    }
+
     /* 把当前状态刷到界面上（初始化时 + 每次 pjax 换页后都要调一次）。
        显隐放在最前面：后面任何一步出问题都不会影响「大卡/迷你条」的显隐。 */
     function refreshViews() {
         cacheDom();
         toggleMiniVisibility();
         bindControls();
+        bindPlaylist();
         renderMeta();
         updateTime();
         paintLyrics();
@@ -406,8 +514,26 @@
         updateVolumeUI();
     }
 
-    /* 给 pjax.js 用：换完内容后重新挂载播放器视图（音频本身不受影响） */
-    window.fcMusic = { refresh: refreshViews };
+    /* 给 pjax.js 用：换完内容后重新挂载播放器视图（音频本身不受影响）。
+       其余几个是给音乐页 / 排查用的：都只是操作同一个 audio。 */
+    window.fcMusic = {
+        refresh: refreshViews,
+        state: function () {
+            var t = current();
+            return {
+                index: index, id: t.id, title: t.title, artist: t.artist,
+                playing: !audio.paused && !failed,
+                time: audio.currentTime || 0,
+                duration: audio.duration || 0,
+                volume: audio.volume, muted: audio.muted,
+                count: PLAYLIST.length
+            };
+        },
+        select: function (i) { load(i, { play: true }); },
+        toggle: togglePlay,
+        next: function () { load(index + 1, { play: true }); },
+        prev: function () { load(index - 1, { play: true }); }
+    };
 
     audio.addEventListener('play', function () { setPlayingUI(); save(); });
     audio.addEventListener('pause', function () { setPlayingUI(); save(); });

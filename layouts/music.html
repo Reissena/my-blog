@@ -1,0 +1,65 @@
+{{- /* =====================================================================
+     音乐页（content/music.md 里 layout: "music" 选中本模板）
+     ---------------------------------------------------------------------
+     关键：这里**没有第二个播放器**。左栏直接复用首页那张大卡的 partial
+     （_partials/music_player.html）—— 同一批 id（#fc-player / #fc-cover /
+     #fc-title / #fc-time-cur …）与同一批 data-fc 钩子，所以
+     assets/js/music-player.js 里那个唯一的 <audio> 换页后照旧驱动它。
+     页脚常驻的迷你播放条由 toggleMiniVisibility() 按「页面上有没有 #fc-player」
+     自动隐藏（所以本页是：音乐页大卡显示、迷你条隐藏、首页大卡不存在）。
+
+     右栏是整页歌词面板（#fc-lyrics-full），同样由播放器脚本填充与高亮滚动；
+     本页把首页那条歌词条（#fc-lyric）用 CSS 隐掉，避免同一屏两份歌词。
+
+     文案（标题 / 副标题）放在 content/music.md 的 front matter 里，改一个字即可。
+     ===================================================================== */ -}}
+{{- define "main" }}
+{{- $music := hugo.Data.music -}}
+<div class="fc-music-page">
+    <header class="fc-page-head fc-glass">
+        <h1 class="fc-page-title">{{ .Title }}</h1>
+        {{- with .Params.subtitle }}<p class="fc-page-desc">{{ . }}</p>{{ end }}
+        <span class="fc-chip">{{ len $music }} 首</span>
+    </header>
+
+    <div class="fc-music-layout">
+        <div class="fc-music-left">
+            {{- partial "music_player.html" . }}
+
+            {{- /* 播放列表：点一首就切歌（交给播放器的 load()，不新建播放器） */ -}}
+            <section class="fc-playlist fc-glass">
+                <h2 class="fc-playlist-title">播放列表</h2>
+                <ol class="fc-playlist-items" id="fc-playlist">
+                    {{- range $i, $t := $music }}
+                    <li>
+                        <button type="button" class="fc-playlist-item{{ if eq $i 0 }} is-current{{ end }}"
+                            data-track="{{ $i }}" aria-label="播放 {{ $t.title }}{{ if eq $i 0 }}（当前）{{ end }}">
+                            <img class="fc-playlist-cover" src="{{ partial "music_url.html" $t.cover }}" alt=""
+                                width="44" height="44" loading="lazy" decoding="async">
+                            <span class="fc-playlist-text">
+                                <span class="fc-playlist-name">{{ $t.title }}</span>
+                                <span class="fc-playlist-artist">{{ $t.artist }}</span>
+                            </span>
+                            <span class="fc-playlist-idx" aria-hidden="true">{{ add $i 1 }}</span>
+                        </button>
+                    </li>
+                    {{- end }}
+                </ol>
+            </section>
+        </div>
+
+        <div class="fc-music-right">
+            <section class="fc-lyrics-panel fc-glass" aria-label="歌词">
+                <div class="fc-lyrics-head">
+                    <h2 class="fc-lyrics-title">歌词</h2>
+                    <span class="fc-lyrics-hint">跟随播放逐句高亮</span>
+                </div>
+                {{- /* 内容由播放器脚本填充（含「纯音乐，请欣赏」等占位文案） */ -}}
+                <div class="fc-lyrics-full" id="fc-lyrics-full" aria-live="polite">
+                    <p class="fc-lyrics-placeholder">播放后这里会逐句滚动显示歌词</p>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+{{- end }}{{/* end main */}}

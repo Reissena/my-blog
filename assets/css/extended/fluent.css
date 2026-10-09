@@ -2599,3 +2599,288 @@ body.fc-has-mini .fc-statusbar-wrap {
         padding-bottom: 92px;
     }
 }
+
+/* ------------------- 18. 音乐页 /music/（大播放器卡 + 整页双语歌词） ------------------- */
+/* 左栏直接复用首页那张大卡的 partial（同一批 id / data-fc 钩子），所以这里
+   **只加本页作用域的尺寸与排布**，首页大卡的外观与位置一点没动。
+   同理，封面转不转仍由播放器的 .is-playing 驱动，本页不接管。 */
+.fc-page-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding: 18px 20px;
+    border-radius: var(--fc-radius-inner);
+}
+
+.fc-page-title {
+    margin: 0;
+    font-size: 26px;
+    line-height: 1.25;
+}
+
+.fc-page-desc {
+    margin: 0;
+    color: var(--secondary);
+    font-size: 14px;
+}
+
+.fc-page-head .fc-chip {
+    margin-left: auto;
+}
+
+.fc-music-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+}
+
+.fc-music-left {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+.fc-music-right {
+    min-width: 0;
+}
+
+/* 本页右栏已是整页歌词，首页那条歌词条就隐掉（DOM 保留，播放器照旧往里写） */
+.fc-music-layout #fc-lyric {
+    display: none;
+}
+
+/* 本页封面更大、整块居中竖排 —— 只在本页生效 */
+.fc-music-layout .fc-player-main {
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+}
+
+.fc-music-layout .fc-player-cover-wrap {
+    width: 200px;
+    height: 200px;
+}
+
+.fc-music-layout .fc-player-info {
+    align-items: center;
+    text-align: center;
+}
+
+.fc-music-layout .fc-player-title {
+    font-size: 22px;
+}
+
+/* 播放列表 */
+.fc-playlist {
+    padding: 16px 16px 12px;
+    border-radius: var(--fc-radius-inner);
+}
+
+.fc-playlist-title {
+    margin: 0 0 10px;
+    color: var(--secondary);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.fc-playlist-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 330px;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    list-style: none;
+}
+
+.fc-playlist-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 44px;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.fc-playlist-cover {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.fc-playlist-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.fc-playlist-name {
+    overflow: hidden;
+    font-size: 13.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fc-playlist-artist {
+    overflow: hidden;
+    color: var(--secondary);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fc-playlist-idx {
+    margin-left: auto;
+    color: var(--secondary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.fc-playlist-item:hover {
+    background: var(--fc-accent-soft);
+}
+
+.fc-playlist-item.is-current {
+    background: var(--fc-accent-soft);
+    box-shadow: inset 0 0 0 1px var(--fc-glass-stroke);
+}
+
+.fc-playlist-item.is-current .fc-playlist-name {
+    color: var(--fc-accent);
+    font-weight: 600;
+}
+
+.fc-playlist-item.is-current .fc-playlist-idx {
+    color: var(--fc-accent);
+}
+
+/* 整页歌词面板 */
+.fc-lyrics-panel {
+    display: flex;
+    flex-direction: column;
+    padding: 16px 18px 18px;
+    border-radius: var(--fc-radius-inner);
+}
+
+.fc-lyrics-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.fc-lyrics-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.fc-lyrics-hint {
+    margin-left: auto;
+    color: var(--secondary);
+    font-size: 12px;
+}
+
+.fc-lyrics-full {
+    position: relative;   /* 高亮行的 offsetTop 以它为参照 */
+    height: min(58vh, 460px);
+    padding: 4px 6px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+}
+
+.fc-lyrics-item {
+    margin: 0;
+    padding: 9px 10px;
+    border-radius: 10px;
+    color: var(--secondary);
+    font-size: 15px;
+    line-height: 1.5;
+    transition: color .25s ease, background .25s ease;
+}
+
+.fc-lyrics-text {
+    display: block;
+}
+
+.fc-lyrics-sub {
+    display: block;
+    margin-top: 3px;
+    color: var(--secondary);
+    font-size: 12.5px;
+    opacity: .78;
+}
+
+.fc-lyrics-item.is-current {
+    background: var(--fc-accent-soft);
+    color: var(--primary);
+}
+
+.fc-lyrics-item.is-current .fc-lyrics-text {
+    font-weight: 600;
+}
+
+.fc-lyrics-item.is-current .fc-lyrics-sub {
+    color: var(--fc-accent);
+    opacity: 1;
+}
+
+.fc-lyrics-placeholder {
+    margin: 0;
+    padding: 22px 10px;
+    color: var(--secondary);
+    text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .fc-lyrics-item {
+        transition: none;
+    }
+}
+
+/* 窄屏：上下堆叠（播放器在上、歌词在下），封面收一档 */
+@media screen and (max-width: 900px) {
+
+    .fc-music-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .fc-music-layout .fc-player-cover-wrap {
+        width: 168px;
+        height: 168px;
+    }
+
+    .fc-lyrics-full {
+        height: min(52vh, 380px);
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    .fc-page-title {
+        font-size: 22px;
+    }
+
+    .fc-playlist-items {
+        max-height: 300px;
+    }
+}

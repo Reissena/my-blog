@@ -152,6 +152,11 @@ mainSections = ["posts"]
     url = "/tags/"
     weight = 30
   [[menu.main]]
+    identifier = "music"
+    name = "音乐"
+    url = "/music/"
+    weight = 35
+  [[menu.main]]
     identifier = "search"
     name = "搜索"
     url = "/search/"
