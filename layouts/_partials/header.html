@@ -13,7 +13,8 @@
     <nav class="header-nav">
         <div class="logo">
             <a class="fc-brand" href="{{ "" | absLangURL }}" accesskey="h" title="{{ site.Title }} (Alt + H)">
-                {{- partial "avatar.html" (dict "class" "fc-brand-mark" "size" 28) }}
+                {{- /* 左上角小图标：单独用 logo.jpg（卡片头像仍走默认的 avatar.jpg） */ -}}
+                {{- partial "avatar.html" (dict "class" "fc-brand-mark" "size" 28 "src" "images/logo.jpg") }}
                 <span class="fc-brand-text">{{ site.Title }}</span>
             </a>
         </div>
