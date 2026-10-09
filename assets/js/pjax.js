@@ -42,6 +42,8 @@
     var HOVER_DELAY = 80;    // 悬停多久后才真的去预取（鼠标扫过不算）
 
     var inflight = null;
+    var fetchTimer = null;
+    var navSeq = 0;          // 导航编号：只有最新一次导航允许回退成整页跳转
     var cache = new Map();
     var warming = {};
     var hoverTimer = null;
@@ -134,6 +136,7 @@
 
     /* ------------------------------------------------------------ 取页面 */
     function go(href, mode, scroll) {
+        var seq = ++navSeq;
         var cached = cache.get(href);
         if (cached) {                     // 预取命中：直接渲染，不等网络
             cache.delete(href);           // 用过即作废（页面可能已变化）
@@ -141,20 +144,27 @@
             return;
         }
 
+        // 先把上一次没跑完的请求与定时器收干净：连续快点几个链接时，旧请求被
+        // abort 后不能再反过来触发整页跳转（那会"抢跳"，把后点的链接顶掉）
         if (inflight && inflight.abort) { inflight.abort(); }
+        clearTimeout(fetchTimer);
         inflight = window.AbortController ? new AbortController() : null;
         var init = { credentials: 'same-origin', headers: { 'X-PJAX': '1' } };
         if (inflight) { init.signal = inflight.signal; }
-        var timer = setTimeout(function () { if (inflight) { inflight.abort(); } }, TIMEOUT);
+        fetchTimer = setTimeout(function () {
+            if (inflight && seq === navSeq) { inflight.abort(); }
+        }, TIMEOUT);
 
         fetch(href, init).then(function (res) {
             if (!res.ok) { throw new Error('HTTP ' + res.status); }
             return res.text();
         }).then(function (html) {
-            clearTimeout(timer);
+            clearTimeout(fetchTimer);
+            if (seq !== navSeq) { return; }          // 已经有更新的导航，丢弃这次结果
             render(html, href, mode, scroll);
         }).catch(function () {
-            clearTimeout(timer);
+            clearTimeout(fetchTimer);
+            if (seq !== navSeq) { return; }          // 被更新的导航取代：别抢跳转、别整页刷新
             if (mode === 'push') { location.href = href; }   // 正常跳转，绝不让链接点不动
             else { location.reload(); }
         });
@@ -175,6 +185,12 @@
         var update = function () {
             rememberScroll();
             content.innerHTML = fresh.innerHTML;   // 只换内容区
+            // 大卡/迷你条的显隐由播放器统一维护（window.fcMusic.refresh），这里再同步
+            // 一次 body 类做兜底：万一播放器脚本没跑起来，CSS 里 body.fc-has-player
+            // 那条 !important 规则也能保证两者不会同时显示
+            if (document.body) {
+                document.body.classList.toggle('fc-has-player', !!content.querySelector('#fc-player'));
+            }
             if (doc.title) { document.title = doc.title; }
             syncNav(doc);
             syncBody(doc);
@@ -197,15 +213,25 @@
             && content.querySelector('.fc-layout') && fresh.querySelector('.fc-layout');
 
         if (canAnimate) {
+            // 新页面有大卡时（迷你条这一下要藏起来），别给迷你条命名：命名元素的
+            // 旧快照在"退场"时会一直留在屏幕上直到过渡结束（看着就像重复显示）。
+            // 不命名就并进 root 快照，root 那对是 animation:none，瞬间切换、不闪。
+            var mini = document.getElementById('fc-mini');
+            var dropMiniName = !!(mini && fresh.querySelector('#fc-player'));
+            if (dropMiniName) { mini.style.viewTransitionName = 'none'; }
+            var restoreName = function () {
+                if (dropMiniName) { mini.style.viewTransitionName = ''; }
+            };
             try {
                 var vt = document.startViewTransition(update);
                 activeVT = vt;
-                var done = function () { activeVT = null; };
+                var done = function () { activeVT = null; restoreName(); };
                 if (vt && vt.finished && vt.finished.then) { vt.finished.then(done, done); }
-                else { activeVT = null; }
+                else { done(); }
                 return;
             } catch (err) {
                 activeVT = null;   // 起不来就当没这回事，下面直接换
+                restoreName();
             }
         }
 

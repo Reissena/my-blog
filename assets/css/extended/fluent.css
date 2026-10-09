@@ -1858,6 +1858,14 @@ body.fc-has-mini .top-link {
     bottom: calc(20px + 62px);
 }
 
+/* 有大卡时，迷你条必须消失 —— 这条规则由 body 类兜底并加 !important：
+   万一某次状态没同步（pjax 换页瞬间、bfcache 恢复、残留的内联 display），
+   也不会出现「大卡 + 迷你条」同时显示。body 类由 music-player.js 维护
+   （pjax 换页后也会同步一次）。 */
+body.fc-has-player .fc-mini {
+    display: none !important;
+}
+
 @keyframes fc-spin {
     to {
         transform: rotate(360deg);

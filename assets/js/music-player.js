@@ -134,13 +134,18 @@
     }
 
     /* 迷你条只在「没有播放器大卡」的页面出现（首页有大卡就藏起来）。
-       用 #fc-player 是否存在来判断，比按 URL 猜更稳：pjax 换完页面也成立。 */
+       判断依据是 #fc-player 在不在 DOM 里 —— 比按 URL 猜稳，pjax 换页后同样成立。
+       实现上用 body 上的一个类交给 CSS（见 fluent.css 的 body.fc-has-player），
+       并把可能残留的内联 display 清掉；这样即使某次刷新没跑到，CSS 也能兜住，
+       不会出现「大卡和迷你条同时显示」。 */
     function toggleMiniVisibility() {
         if (!dom.mini) { return; }
-        // 显式写 inline style（而不是清空），这样首页那份「先藏起来防闪烁」的
-        // <style>#fc-mini{display:none}</style> 不会在 pjax 换页后继续生效
-        dom.mini.style.display = dom.big ? 'none' : 'flex';
-        if (document.body) { document.body.classList.toggle('fc-has-mini', !dom.big); }
+        var hasBig = !!dom.big;
+        dom.mini.style.display = '';   // 显隐交给 CSS，不再依赖内联样式
+        if (document.body) {
+            document.body.classList.toggle('fc-has-player', hasBig);
+            document.body.classList.toggle('fc-has-mini', !hasBig);
+        }
     }
 
     function renderMeta() {
@@ -387,11 +392,12 @@
         });
     }
 
-    /* 把当前状态刷到界面上（初始化时 + 每次 pjax 换页后都要调一次） */
+    /* 把当前状态刷到界面上（初始化时 + 每次 pjax 换页后都要调一次）。
+       显隐放在最前面：后面任何一步出问题都不会影响「大卡/迷你条」的显隐。 */
     function refreshViews() {
         cacheDom();
-        bindControls();
         toggleMiniVisibility();
+        bindControls();
         renderMeta();
         updateTime();
         paintLyrics();
@@ -443,6 +449,12 @@
     window.addEventListener('beforeunload', save);
     document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'hidden') { save(); }
+    });
+
+    // 从 bfcache 恢复（浏览器前进/后退）时脚本不会重跑，界面可能是旧状态，
+    // 这里重新同步一次显隐与各项显示
+    window.addEventListener('pageshow', function (e) {
+        if (e.persisted) { refreshViews(); }
     });
 
     /* ------------------------------------------------------------ 初始化 */
