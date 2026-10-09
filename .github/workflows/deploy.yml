@@ -49,15 +49,42 @@ jobs:
       - name: 构建站点
         run: hugo --minify --gc
 
-      # 4) 部署到 Cloudflare Workers（worker 名 my-blog，配置见仓库根的 wrangler.toml）。
+      # 4) 先自检令牌：把「令牌有效 / 无效」直接打到日志里，
+      #    这样万一后面还失败，一眼能分清是令牌问题还是 wrangler 问题。
+      #    · 只打印 HTTP 状态码 + Cloudflare 的响应体，绝不打印令牌本身
+      #      （响应体里只有令牌的 id / 状态，没有令牌值，可以安全打印）
+      #    · 排查顺序：
+      #        - 这一步返回非 200 → 令牌问题：值被截断 / 前后多了空格或换行，
+      #          或者权限不够（至少需要 Workers Scripts: Edit）
+      #        - 这一步 200、但下一步 wrangler 报错 → wrangler 版本或配置问题
+      - name: 验证 Cloudflare 令牌
+        run: |
+          code=$(curl -s -o /tmp/verify.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            https://api.cloudflare.com/client/v4/user/tokens/verify)
+          echo "HTTP $code"
+          cat /tmp/verify.json
+          test "$code" = "200"
+
+      # 5) 部署到 Cloudflare Workers（worker 名 my-blog，配置见仓库根的 wrangler.toml）。
       #    · CLOUDFLARE_API_TOKEN 从仓库 secrets 读取，需要先在
       #      Settings → Secrets and variables → Actions → New repository secret
       #      里添加，名字必须叫 CLOUDFLARE_API_TOKEN；
       #      权限至少给 Workers Scripts: Edit（建议再加 Account Settings: Read）。
       #    · CLOUDFLARE_ACCOUNT_ID 不是敏感信息，直接写死，省得再配一个 secret。
+      #    · wranglerVersion 必须显式指定：wrangler-action@v3 默认装的是
+      #      wrangler 3.90.0（2024 年的版本），它不认识 wrangler.toml 里
+      #      compatibility_date = "2026-10-09" 这种未来日期，对 [assets]
+      #      静态资源的支持也不全，表现就是
+      #      "The process '/usr/local/bin/npx' failed with exit code 1"。
+      #      本地部署用的是 wrangler 4.x，这里钉到 4 与之保持一致。
+      #    · 若这一行仍报权限不足（Authentication error / not authorized），
+      #      说明令牌权限不够：去 Cloudflare 后台给该令牌补上
+      #      Account → Account Settings → Read（目前只给了 Workers Scripts: Edit）。
       - name: 部署到 Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: f1788a61e7a94f861c6df693513f68d1
+          wranglerVersion: '4'
           command: deploy
