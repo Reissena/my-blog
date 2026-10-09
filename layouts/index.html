@@ -23,7 +23,8 @@
                     {{- partial "avatar.html" (dict "class" "fc-avatar" "size" 76) }}
                     <div class="fc-profile-text">
                         <h1 class="fc-profile-name">
-                            {{- with site.Params.homeInfoParams }}{{ .Title | markdownify }}{{ else }}{{ site.Title }}{{ end -}}
+                            {{- /* 这里是「人名」不是站名，单一数据源见 partials/person_name.html */ -}}
+                            {{- partial "person_name.html" . -}}
                         </h1>
                         <p class="fc-profile-desc">
                             {{- with site.Params.homeInfoParams -}}

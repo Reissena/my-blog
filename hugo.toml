@@ -1,6 +1,6 @@
 # ============================================================
 # Hugo 站点配置 —— PaperMod 主题 / 中文站点
-# 站点：浮华YUN的博客
+# 站点：人间之里X东方夜话
 # ============================================================
 
 # 生产环境地址（结尾必须带斜杠）。
@@ -8,7 +8,7 @@
 #   baseURL = "https://blog.你的域名.com/"
 # 改了以后记得重新构建，否则 canonical / sitemap / RSS 里的链接还是旧域名。
 baseURL = "https://yunblog.com.cn/"
-title = "浮华YUN的博客"
+title = "人间之里X东方夜话"
 theme = "PaperMod"
 
 # 中文相关（Hugo 0.158+ 用 locale 取代 languageCode）
@@ -38,9 +38,9 @@ mainSections = ["posts"]
 
 [params]
   env = "production"
-  description = "浮华YUN的博客：记录技术笔记、折腾过程与生活随笔。"
-  keywords = ["浮华YUN", "博客", "Hugo", "PaperMod", "技术笔记"]
-  author = "浮华YUN"
+  description = "人间之里X东方夜话：记录技术笔记、折腾过程与生活随笔。"
+  keywords = ["浮华Yun", "博客", "Hugo", "PaperMod", "技术笔记"]
+  author = "浮华Yun"
 
   DateFormat = "2006-01-02"
   defaultTheme = "auto"
@@ -60,8 +60,8 @@ mainSections = ["posts"]
 
   # 首页简介
   [params.homeInfoParams]
-    Title = "浮华YUN的博客"
-    Content = "你好，我是浮华YUN 👋 这里记录我的技术笔记、折腾过程和生活随笔。"
+    Title = "浮华Yun"
+    Content = "你好，我是浮华Yun 👋 这里记录我的技术笔记、折腾过程和生活随笔。 [暂时的静态网站]"
 
   # 社交图标（想加 GitHub / 邮箱等，按下面的格式追加即可；url 记得换成你自己的）
   [[params.socialIcons]]

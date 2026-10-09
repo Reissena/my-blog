@@ -1,4 +1,4 @@
-﻿# DEPLOY.md —— 上线部署说明
+# DEPLOY.md —— 上线部署说明
 
 > 适用仓库：本仓库根目录（与 `hugo.toml` 同级）。
 > 站点：Hugo + PaperMod 中文博客，带「前端门禁式」登录模块。
@@ -15,7 +15,7 @@
 
 | 项目 | 值 |
 | --- | --- |
-| 站点 | **浮华YUN的博客** |
+| 站点 | **人间之里X东方夜话** |
 | 站点根目录 | 仓库根（有 `hugo.toml` 的那一层） |
 | baseURL | `https://yunblog.com.cn/`（线上就是这个域名） |
 | 主题 | PaperMod，以 **git submodule** 挂在 `themes/PaperMod`（无 Hugo Modules） |
