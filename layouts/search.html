@@ -1,0 +1,48 @@
+{{- /* =====================================================================
+     搜索页（覆盖主题的 layouts/search.html，换成 Fluent / WinUI 风格）
+     ---------------------------------------------------------------------
+     · 结构与 id 刻意和主题保持一致：#searchbox 同时包住输入框与结果列表、
+       #searchInput、#searchResults —— 主题的 fastsearch.js（Fuse 版）靠这几个 id
+       和 searchbox.contains(active) 判断键盘焦点，所以 ↑↓/Enter/Esc 全部照旧可用。
+     · 索引与脚本仍由主题的 head.html 注入（.Layout == "search" 时才加载），
+       没有引入任何第三方库，也没有改动主题文件。
+     · 只在外层套了自己的玻璃卡样式 + 一个提示条（空状态 / 无结果文案），
+       提示条由 assets/js/search-ui.js 更新，它是只读观察者，不碰搜索结果本身。
+     ===================================================================== */ -}}
+{{- define "main" }}
+<div class="fc-search">
+    <header class="fc-page-head fc-glass">
+        <h1 class="fc-page-title">
+            搜索
+            <svg class="fc-search-title-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        </h1>
+        <span class="fc-chip">↑↓ 选择 · Enter 打开 · Esc 清空</span>
+    </header>
+
+    <div id="searchbox" class="searchbox fc-search-box">
+        <div class="fc-search-field">
+            <svg class="fc-search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input id="searchInput" class="fc-search-input" disabled
+                placeholder="{{ .Params.placeholder | default "输入关键词后回车" }}" aria-label="搜索" type="search"
+                autocomplete="off" maxlength="64">
+            <kbd class="fc-search-kbd" aria-hidden="true">Esc</kbd>
+        </div>
+
+        {{- /* 空状态 / 无结果 / 结果条数都写在这一行，min-height 固定住，不会因为文案变化顶动布局 */ -}}
+        <p class="fc-search-hint" id="fc-search-hint" role="status" aria-live="polite">正在加载搜索索引…</p>
+
+        <ul id="searchResults" class="searchResults fc-search-results" aria-label="搜索结果"></ul>
+    </div>
+</div>
+
+{{- $ui := resources.Get "js/search-ui.js" | resources.Minify | resources.Fingerprint -}}
+<script defer src="{{ $ui.RelPermalink }}" integrity="{{ $ui.Data.Integrity }}" crossorigin="anonymous"></script>
+{{- end }}{{/* end main */}}

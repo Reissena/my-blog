@@ -2293,3 +2293,174 @@ body.fc-has-player .fc-mini {
         bottom: calc(12px + 74px);
     }
 }
+
+/* ------------------- 16. 搜索页（Fluent / WinUI 化） */
+/* 结构沿用主题的 id（#searchbox / #searchInput / #searchResults），只换外观：
+   玻璃搜索框（聚焦有强调色描边与光晕）+ 与「最新文章」同族的卡片式结果 +
+   固定高度的提示条（空状态 / 无结果）。主题的 fastsearch.js 一行未改。 */
+.fc-search {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 760px;
+}
+
+.fc-search-title-icon {
+    width: 22px;
+    height: 22px;
+    vertical-align: -3px;
+    color: var(--fc-accent);
+}
+
+.fc-search-box {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* 搜索框本体：和站内其它玻璃卡同一套令牌 */
+.fc-search-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 52px;
+    padding: 0 16px;
+    border-radius: var(--fc-radius-pill);
+    background: var(--fc-glass-bg);
+    border: 1px solid var(--fc-glass-stroke);
+    -webkit-backdrop-filter: var(--fc-blur);
+    backdrop-filter: var(--fc-blur);
+    box-shadow: var(--fc-shadow);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fc-search-field:focus-within {
+    border-color: var(--fc-accent);
+    box-shadow: 0 0 0 3px var(--fc-accent-soft);
+}
+
+.fc-search-icon {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    color: var(--secondary);
+}
+
+.fc-search-field:focus-within .fc-search-icon {
+    color: var(--fc-accent);
+}
+
+.fc-search-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--primary);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    outline: none;
+}
+
+.fc-search-input::placeholder {
+    color: var(--secondary);
+}
+
+/* 移动端的搜索框会自动聚焦并弹出键盘，桌面才提示 Esc */
+.fc-search-kbd {
+    flex: none;
+    padding: 3px 7px;
+    border-radius: 6px;
+    border: 1px solid var(--fc-glass-stroke);
+    background: var(--fc-accent-soft);
+    color: var(--fc-accent);
+    font-family: inherit;
+    font-size: 11.5px;
+    line-height: 1.2;
+}
+
+/* 提示条：min-height 固定，文案在「空状态/无结果/条数」之间切换时不顶动结果列表 */
+.fc-search-hint {
+    min-height: 20px;
+    margin: 0;
+    color: var(--secondary);
+    font-size: 13.5px;
+}
+
+/* 结果：与卡片列表同族的玻璃卡，悬停 / 键盘聚焦 / 主题脚本的 .focus 统一表现 */
+.fc-search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.fc-search-results li {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 54px;
+    padding: 14px 16px;
+    border-radius: var(--fc-radius-inner);
+    background: var(--fc-glass-bg);
+    border: 1px solid var(--fc-glass-stroke);
+    -webkit-backdrop-filter: var(--fc-blur);
+    backdrop-filter: var(--fc-blur);
+    box-shadow: var(--fc-shadow);
+    color: var(--primary);
+    font-weight: 500;
+    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.fc-search-results li:hover,
+.fc-search-results li:focus-within,
+.fc-search-results li.focus {
+    transform: translateY(-2px);
+    border-color: var(--fc-accent);
+    background: var(--fc-glass-bg-strong);
+}
+
+.fc-search-results li svg {
+    flex: none;
+    color: var(--secondary);
+}
+
+/* 主题脚本生成的覆盖式链接：保留它才能「点整行都能跳转」 */
+.fc-search-results li .entry-link {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+}
+
+.fc-search-results li .entry-link:focus {
+    outline: 2px solid var(--fc-accent);
+    outline-offset: -2px;
+}
+
+@media screen and (max-width: 768px) {
+
+    .fc-search {
+        max-width: none;
+    }
+
+    .fc-search-field {
+        height: 48px;
+        padding: 0 13px;
+    }
+
+    .fc-search-kbd {
+        display: none;
+    }
+
+    .fc-search-results li {
+        min-height: 48px;
+        padding: 13px 14px;
+        font-size: 14.5px;
+    }
+}

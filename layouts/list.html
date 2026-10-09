@@ -3,9 +3,10 @@
     ---------------------------------------------------------------------
     · 覆盖主题同名文件；首页由 layouts/index.html 单独处理。
     · 与首页一样是「左内容 + 右侧栏」两栏（侧栏 partial 见 _partials/side_*.html）。
-    · 归档（/archives/）、标签总览（/tags/）与搜索（/search/）仍走主题的
-      archives.html / taxonomy.html / search.html，保持单栏（只由
-      assets/css/extended/fluent.css 换皮），避免宽表格类页面被侧栏挤窄。
+    · 归档（/archives/）、标签总览（/tags/）仍走主题的 archives.html /
+      taxonomy.html，保持单栏（只由 assets/css/extended/fluent.css 换皮），
+      避免宽表格类页面被侧栏挤窄；搜索页（/search/）现在有自己的 Fluent 版
+      覆盖模板 layouts/search.html，同样是单栏。
    ===================================================================== */ -}}
 {{- define "main" }}
 
