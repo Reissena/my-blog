@@ -1,6 +1,6 @@
 # ============================================================
 # Hugo 站点配置 —— PaperMod 主题 / 中文站点
-# 站点：人间之里X东方夜话
+# 站点：YunX东方夜话
 # ============================================================
 
 # 生产环境地址（结尾必须带斜杠）。
@@ -8,7 +8,7 @@
 #   baseURL = "https://blog.你的域名.com/"
 # 改了以后记得重新构建，否则 canonical / sitemap / RSS 里的链接还是旧域名。
 baseURL = "https://yunblog.com.cn/"
-title = "人间之里X东方夜话"
+title = "YunX东方夜话"
 theme = "PaperMod"
 
 # 中文相关（Hugo 0.158+ 用 locale 取代 languageCode）
@@ -38,7 +38,7 @@ mainSections = ["posts"]
 
 [params]
   env = "production"
-  description = "人间之里X东方夜话：记录技术笔记、折腾过程与生活随笔。"
+  description = "YunX东方夜话：记录技术笔记、折腾过程与生活随笔。"
   keywords = ["浮华Yun", "博客", "Hugo", "PaperMod", "技术笔记"]
   author = "浮华Yun"
 
@@ -71,6 +71,17 @@ mainSections = ["posts"]
   [[params.socialIcons]]
     name = "rss"
     url = "index.xml"
+
+  # favicon / 图标：带 ?v=2 版本号。favicon 被浏览器缓存得极死，文件在 static/ 下
+  # 又走不了指纹，所以只能靠换 URL 让访客拿到新图标（换图时把 v= 往上加即可）。
+  # 这几项是 PaperMod 自带的钩子（见主题 head.html 的 Favicons 段），
+  # 所以不会额外多出一份重复的 <link>。
+  [params.assets]
+    favicon = "/favicon.ico?v=2"
+    favicon16x16 = "/favicon-16x16.png?v=2"
+    favicon32x32 = "/favicon-32x32.png?v=2"
+    apple_touch_icon = "/apple-touch-icon.png?v=2"
+    safari_pinned_tab = "/safari-pinned-tab.svg?v=2"
 
 # ============================================================
 # 登录模块（前端门禁式，实现见 layouts/ + assets/js/auth.js）

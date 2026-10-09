@@ -15,7 +15,7 @@
 
 | 项目 | 值 |
 | --- | --- |
-| 站点 | **人间之里X东方夜话** |
+| 站点 | **YunX东方夜话** |
 | 站点根目录 | 仓库根（有 `hugo.toml` 的那一层） |
 | baseURL | `https://yunblog.com.cn/`（线上就是这个域名） |
 | 主题 | PaperMod，以 **git submodule** 挂在 `themes/PaperMod`（无 Hugo Modules） |
