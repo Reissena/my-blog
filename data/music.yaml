@@ -1,0 +1,73 @@
+# 播放列表 —— 由 tools/prepare-music.py 自动生成，请勿手改。
+# 素材：6 首 MP3（static/music/）+ 封面（static/music/covers/）+ LRC（static/music/lyrics/）
+# 字段：id / title / artist / file / cover / lyrics / instrumental / credits
+
+- id: "01-kachou-fuugetsu"
+  title: "華鳥風月 (幻想万華鏡 花の異変の章 OP主題歌)"
+  artist: "Senya"
+  file: "/music/01-kachou-fuugetsu.mp3"
+  cover: "/music/covers/01-kachou-fuugetsu.jpg"
+  lyrics: "/music/lyrics/01-kachou-fuugetsu.lrc"
+  instrumental: false
+  credits:
+    - role: "作词"
+      name: "かませ虎"
+    - role: "作曲"
+      name: "ZUN"
+    - role: "编曲"
+      name: "瀬尾祐介"
+    - role: "制作人"
+      name: "幽閉サテライト"
+
+- id: "02-again"
+  title: "Again"
+  artist: "Vivienne"
+  file: "/music/02-again.mp3"
+  cover: "/music/covers/02-again.jpg"
+  lyrics: ""
+  instrumental: false
+  credits: []
+
+- id: "03-ray-of-light"
+  title: "The Ray of Light"
+  artist: "Vivienne"
+  file: "/music/03-ray-of-light.mp3"
+  cover: "/music/covers/03-ray-of-light.jpg"
+  lyrics: ""
+  instrumental: false
+  credits: []
+
+- id: "04-hakugyokurou-kaidan"
+  title: "白玉楼階段の幻闘"
+  artist: "東京アクティブNEETs"
+  file: "/music/04-hakugyokurou-kaidan.mp3"
+  cover: "/music/covers/04-hakugyokurou-kaidan.jpg"
+  lyrics: "/music/lyrics/04-hakugyokurou-kaidan.lrc"
+  instrumental: true
+  credits:
+    - role: "作曲"
+      name: "ZUN"
+
+- id: "05-song-for-two"
+  title: "SONG FOR TWO"
+  artist: "平井 大"
+  file: "/music/05-song-for-two.mp3"
+  cover: "/music/covers/05-song-for-two.jpg"
+  lyrics: ""
+  instrumental: false
+  credits: []
+
+- id: "06-city-escape-plan"
+  title: "城市逃离计划30%"
+  artist: "异环10AM"
+  file: "/music/06-city-escape-plan.mp3"
+  cover: "/music/covers/06-city-escape-plan.jpg"
+  lyrics: "/music/lyrics/06-city-escape-plan.lrc"
+  instrumental: true
+  credits:
+    - role: "作曲"
+      name: "曲扬"
+    - role: "编曲"
+      name: "曲扬"
+    - role: "制作人"
+      name: "异环10AM"

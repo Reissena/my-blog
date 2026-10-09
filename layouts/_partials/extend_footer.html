@@ -1,0 +1,44 @@
+{{- /* =====================================================================
+    覆盖主题的 layouts/_partials/extend_footer.html（PaperMod 预留的页脚扩展点）
+    ---------------------------------------------------------------------
+    全站常驻播放器需要的三样东西都在这里：
+      1) 播放列表数据（data/music.yaml → JSON，塞进 <script type="application/json">）
+         里面的路径顺手过一次 music_url.html，预览构建（relativeURLs）也能用
+      2) 非首页：右下角的迷你播放条（首页用播放器大卡，见 _partials/music_player.html）
+      3) 播放器脚本（走 Hugo 资源管线，带 SRI）
+    音频元素由 JS 在运行时创建，所以这里没有任何 <audio> 标签。
+   ===================================================================== */ -}}
+{{- $music := hugo.Data.music -}}
+{{- with $music -}}
+{{- $list := slice -}}
+{{- range . -}}
+    {{- $list = $list | append (dict
+        "id" .id
+        "title" .title
+        "artist" .artist
+        "instrumental" (.instrumental | default false)
+        "credits" (.credits | default slice)
+        "file" (partial "music_url.html" .file)
+        "cover" (partial "music_url.html" .cover)
+        "lyrics" (cond (ne .lyrics "") (partial "music_url.html" .lyrics) "")) -}}
+{{- end -}}
+<script type="application/json" id="fc-music-data">{{ $list | jsonify | safeJS }}</script>
+{{- if not $.IsHome -}}
+{{- $first := index . 0 -}}
+<div class="fc-mini fc-glass" id="fc-mini">
+    <img class="fc-mini-cover" id="fc-mini-cover" src="{{ partial "music_url.html" $first.cover }}" alt="" width="40"
+        height="40" loading="lazy" decoding="async">
+    <button class="fc-mini-text" type="button" data-fc="toggle" aria-label="播放 / 暂停">
+        <span class="fc-mini-title" id="fc-mini-title">{{ $first.title }}</span>
+        <span class="fc-mini-artist" id="fc-mini-artist">{{ $first.artist }}</span>
+    </button>
+    <button class="fc-mini-btn" type="button" data-fc="next" aria-label="下一首" title="下一首">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M15 5h2v14h-2zM5 5v14l9-7z" />
+        </svg>
+    </button>
+</div>
+{{- end -}}
+{{- $js := resources.Get "js/music-player.js" | resources.Minify | resources.Fingerprint -}}
+<script defer src="{{ $js.RelPermalink }}" integrity="{{ $js.Data.Integrity }}" crossorigin="anonymous"></script>
+{{- end -}}

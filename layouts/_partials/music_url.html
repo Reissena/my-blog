@@ -1,0 +1,8 @@
+{{- /* 把 data/music.yaml 里的站点内绝对路径（/music/…）转成兼容两种构建模式的 URL：
+     · 生产构建（关闭 relativeURLs）→ /music/…
+     · 预览构建（preview.toml 的 relativeURLs）→ 相对当前页的路径
+     外链（http/https）原样返回。参数：一个路径字符串。
+     用法：{{ $u := partial "music_url.html" .cover }} —— 输出无多余空白。 */ -}}
+{{- $p := . -}}
+{{- if or (hasPrefix $p "http://") (hasPrefix $p "https://") -}}{{- $p -}}
+{{- else -}}{{- printf "%s%s" site.Home.RelPermalink (strings.TrimPrefix "/" $p) -}}{{- end -}}

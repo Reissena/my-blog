@@ -1,0 +1,80 @@
+{{- /* =====================================================================
+    音乐播放器（首页右侧大卡 + 下方歌词条）
+    ---------------------------------------------------------------------
+    · 数据来自 data/music.yaml（site.Data.music），由 tools/prepare-music.py 生成
+    · 这里只渲染「初始状态」（第一首），实际播放/切歌/歌词同步全在
+      assets/js/music-player.js 里做；即使 JS 没跑，卡片也是完整的静态内容
+    · 全站常驻：其它页面右下角的迷你播放条在 _partials/extend_footer.html 里
+   ===================================================================== */ -}}
+{{- $music := hugo.Data.music -}}
+{{- with $music -}}
+{{- $first := index . 0 -}}
+<div class="fc-player-col">
+    <section class="fc-player fc-glass" id="fc-player">
+        <div class="fc-player-head">
+            <span class="fc-player-tag">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M9 18V6l10-2v12" />
+                    <circle cx="6.5" cy="18" r="2.5" />
+                    <circle cx="16.5" cy="16" r="2.5" />
+                </svg>
+                CLOUD MUSIC
+            </span>
+            <span class="fc-player-count">{{ len . }} 首</span>
+        </div>
+
+        <div class="fc-player-main">
+            <div class="fc-player-cover-wrap">
+                <img class="fc-player-cover" id="fc-cover" src="{{ partial "music_url.html" $first.cover }}"
+                    alt="{{ $first.title }} 专辑封面" width="120" height="120" loading="eager" decoding="async">
+                <span class="fc-player-hole" aria-hidden="true"></span>
+            </div>
+            <div class="fc-player-info">
+                <h2 class="fc-player-title" id="fc-title">{{ $first.title }}</h2>
+                <p class="fc-player-artist" id="fc-artist">{{ $first.artist }}</p>
+                <p class="fc-player-credits" id="fc-credits">
+                    {{- range $i, $c := $first.credits }}{{ if $i }} · {{ end }}{{ $c.role }} {{ $c.name }}{{ end -}}
+                </p>
+            </div>
+        </div>
+
+        <div class="fc-player-progress">
+            <span class="fc-player-time" id="fc-time-cur">00:00</span>
+            <input class="fc-player-seek" id="fc-seek" type="range" min="0" max="1000" step="1" value="0"
+                aria-label="播放进度">
+            <span class="fc-player-time" id="fc-time-total">00:00</span>
+        </div>
+
+        <div class="fc-player-controls">
+            <button class="fc-player-btn" type="button" data-fc="prev" aria-label="上一首" title="上一首">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M7 5h2v14H7zM19 5v14l-9-7z" />
+                </svg>
+            </button>
+            <button class="fc-player-btn fc-player-btn--main" type="button" data-fc="toggle" aria-label="播放 / 暂停"
+                title="播放 / 暂停">
+                <svg class="fc-icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+                    aria-hidden="true">
+                    <path d="M8 5.5v13l11-6.5z" />
+                </svg>
+                <svg class="fc-icon-pause" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+                    aria-hidden="true">
+                    <path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" />
+                </svg>
+            </button>
+            <button class="fc-player-btn" type="button" data-fc="next" aria-label="下一首" title="下一首">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M15 5h2v14h-2zM5 5v14l9-7z" />
+                </svg>
+            </button>
+        </div>
+    </section>
+
+    <div class="fc-lyric fc-glass" id="fc-lyric" aria-live="polite">
+        <p class="fc-lyric-line fc-lyric-line--prev" data-lyric="prev"></p>
+        <p class="fc-lyric-line fc-lyric-line--cur" data-lyric="cur">{{ $first.title }} · {{ $first.artist }}</p>
+        <p class="fc-lyric-line fc-lyric-line--next" data-lyric="next"></p>
+    </div>
+</div>
+{{- end -}}

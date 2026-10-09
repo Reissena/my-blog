@@ -1375,3 +1375,489 @@ a.fc-pager-link:hover {
         transform: none;
     }
 }
+
+/* --------------------- 11. 音乐播放器（首页大卡 + 全站迷你播放条） */
+/* 深色模式下强调色是浅蓝，压在强调色上的文字要换成深色才看得清 */
+:root {
+    --fc-accent-ink: #ffffff;
+}
+
+[data-theme="dark"] {
+    --fc-accent-ink: #08202e;
+}
+
+/* 首页顶部：左＝个人信息卡，右＝播放器卡 + 歌词条 */
+.fc-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.06fr);
+    gap: 20px;
+    align-items: stretch;
+    margin: var(--gap) 0 30px;
+}
+
+.fc-profile-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 16px;
+    padding: 22px;
+}
+
+.fc-profile-head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.fc-profile-text {
+    min-width: 0;
+}
+
+.fc-profile-name {
+    margin: 0 0 6px;
+    font-size: 21px;
+    line-height: 1.35;
+}
+
+.fc-profile-desc {
+    margin: 0;
+    color: var(--secondary);
+    font-size: 14.5px;
+    line-height: 1.7;
+}
+
+.fc-profile-social {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.fc-profile-social a {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--fc-radius-pill);
+    background: var(--fc-accent-soft);
+    border: 1px solid var(--fc-glass-stroke);
+    color: var(--fc-accent);
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.fc-profile-social a:hover {
+    background: var(--fc-accent);
+    color: var(--fc-accent-ink);
+    transform: translateY(-2px);
+}
+
+.fc-profile-social svg {
+    width: 17px;
+    height: 17px;
+}
+
+/* 右列：播放器卡 + 歌词条 */
+.fc-player-col {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+}
+
+.fc-player {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px 20px;
+}
+
+.fc-player-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.fc-player-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: var(--fc-radius-pill);
+    background: var(--fc-accent-soft);
+    border: 1px solid rgba(15, 108, 189, 0.18);
+    color: var(--fc-accent);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.fc-player-tag svg {
+    width: 13px;
+    height: 13px;
+}
+
+.fc-player-count {
+    color: var(--secondary);
+    font-size: 12px;
+}
+
+.fc-player-main {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+}
+
+/* 圆形旋转封面（暂停时停转，靠 .is-playing 切换 animation-play-state） */
+.fc-player-cover-wrap {
+    position: relative;
+    flex: none;
+    width: 120px;
+    height: 120px;
+}
+
+.fc-player-cover {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--fc-avatar-stroke);
+    box-shadow: var(--fc-avatar-shadow);
+    animation: fc-spin 16s linear infinite;
+    animation-play-state: paused;
+}
+
+.fc-player.is-playing .fc-player-cover {
+    animation-play-state: running;
+}
+
+.fc-player-hole {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 26px;
+    height: 26px;
+    margin: -13px 0 0 -13px;
+    border-radius: 50%;
+    background: var(--fc-glass-bg-strong);
+    border: 1px solid var(--fc-glass-stroke);
+    box-shadow: inset 0 0 0 4px rgba(0, 0, 0, 0.06);
+    pointer-events: none;
+}
+
+.fc-player-info {
+    min-width: 0;
+}
+
+.fc-player-title {
+    margin: 0 0 4px;
+    font-size: 18px;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+}
+
+.fc-player-artist {
+    margin: 0;
+    color: var(--secondary);
+    font-size: 13.5px;
+}
+
+.fc-player-credits {
+    margin: 6px 0 0;
+    color: var(--secondary);
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fc-player-credits:empty {
+    display: none;
+}
+
+.fc-player-progress {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+}
+
+.fc-player-time {
+    color: var(--secondary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.fc-player-seek {
+    width: 100%;
+    height: 4px;
+    accent-color: var(--fc-accent);
+    cursor: pointer;
+}
+
+.fc-player-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+
+.fc-player-btn {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--fc-glass-stroke);
+    background: var(--fc-accent-soft);
+    color: var(--fc-accent);
+    cursor: pointer;
+    transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.fc-player-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.fc-player-btn:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.08);
+}
+
+.fc-player-btn--main {
+    width: 54px;
+    height: 54px;
+    background: var(--fc-accent);
+    color: var(--fc-accent-ink);
+    border-color: transparent;
+    box-shadow: 0 6px 18px rgba(15, 108, 189, 0.32);
+}
+
+.fc-player-btn--main svg {
+    width: 22px;
+    height: 22px;
+}
+
+/* 播放/暂停图标随 .is-playing 切换 */
+.fc-icon-pause {
+    display: none;
+}
+
+.is-playing .fc-icon-play {
+    display: none;
+}
+
+.is-playing .fc-icon-pause {
+    display: block;
+}
+
+/* 歌词条：上一句 / 当前句 / 下一句，切句时淡入上移 */
+.fc-lyric {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-height: 84px;
+    padding: 12px 18px;
+    text-align: center;
+    overflow: hidden;
+}
+
+.fc-lyric-line {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fc-lyric-line--prev,
+.fc-lyric-line--next {
+    color: var(--secondary);
+    font-size: 12.5px;
+    opacity: 0.55;
+}
+
+.fc-lyric-line--cur {
+    color: var(--fc-accent);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.fc-lyric-line--cur.is-placeholder {
+    color: var(--secondary);
+    font-weight: 500;
+}
+
+.fc-lyric-line.is-swap {
+    animation: fc-lyric-in 0.35s ease;
+}
+
+/* 非首页：右下角迷你播放条 */
+.fc-mini {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: min(340px, calc(100vw - 40px));
+    padding: 8px 12px 8px 8px;
+    border-radius: var(--fc-radius-pill);
+}
+
+.fc-mini-cover {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--fc-avatar-stroke);
+    animation: fc-spin 16s linear infinite;
+    animation-play-state: paused;
+}
+
+.fc-mini.is-playing .fc-mini-cover {
+    animation-play-state: running;
+}
+
+.fc-mini-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+}
+
+.fc-mini-title {
+    max-width: 190px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.fc-mini-artist {
+    max-width: 190px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--secondary);
+    font-size: 11px;
+}
+
+.fc-mini-btn {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--fc-glass-stroke);
+    background: var(--fc-accent-soft);
+    color: var(--fc-accent);
+    cursor: pointer;
+}
+
+.fc-mini-btn svg {
+    width: 15px;
+    height: 15px;
+}
+
+.fc-mini-btn:hover {
+    filter: brightness(1.08);
+}
+
+/* 迷你播放条出现时，把主题的「回到顶部」按钮往上让一让 */
+body.fc-has-mini .top-link {
+    bottom: calc(20px + 62px);
+}
+
+@keyframes fc-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes fc-lyric-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .fc-top {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .fc-profile-card {
+        padding: 18px;
+    }
+
+    .fc-player-cover-wrap {
+        width: 100px;
+        height: 100px;
+    }
+
+    .fc-player-title {
+        font-size: 16.5px;
+    }
+
+    /* 迷你播放条贴底通栏 */
+    .fc-mini {
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        max-width: none;
+    }
+
+    .fc-mini-title,
+    .fc-mini-artist {
+        max-width: none;
+    }
+
+    .fc-mini-text {
+        flex: 1;
+    }
+
+    body.fc-has-mini .top-link {
+        right: 12px;
+        bottom: calc(12px + 58px);
+    }
+}
+
+/* 尊重「减少动态效果」偏好：封面不转、歌词不位移 */
+@media (prefers-reduced-motion: reduce) {
+
+    .fc-player-cover,
+    .fc-mini-cover,
+    .fc-lyric-line.is-swap {
+        animation: none !important;
+    }
+
+    .fc-player-btn,
+    .fc-profile-social a {
+        transition: none;
+    }
+
+    .fc-player-btn:hover,
+    .fc-profile-social a:hover {
+        transform: none;
+    }
+}
