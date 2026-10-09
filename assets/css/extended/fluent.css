@@ -1956,3 +1956,66 @@ body.fc-has-mini .top-link {
         transform: none;
     }
 }
+
+/* ------------- 12. pjax 切页过渡（只动内容区，绝不碰 root） */
+/* 第 10 节那对 ::view-transition-old/new(root) 是主题切换「圆形扩散」专用的，
+   这里的切页动画给内容区和常驻播放器各起一个独立的名字，两者互不干扰：
+     · fc-page   → 内容区（.fc-layout）：旧的淡出并轻微上移，新的淡入
+     · fc-player → 右下角迷你播放条：old / new 都不加动画，切页时原地不动、不闪
+   主题切换那一下由 window.fcViewNames 临时把这两个名字摘掉 —— 命名元素会画在
+   root 之上，不摘的话圆形扩散盖不住它们（pjax.js / theme-transition.js 里成对处理）。 */
+.fc-layout {
+    view-transition-name: fc-page;
+}
+
+::view-transition-old(fc-page) {
+    mix-blend-mode: normal;
+    animation: fc-page-out 0.22s ease-out both;
+}
+
+::view-transition-new(fc-page) {
+    mix-blend-mode: normal;
+    animation: fc-page-in 0.24s ease-out both;
+}
+
+@keyframes fc-page-out {
+    from {
+        opacity: 1;
+        transform: none;
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+}
+
+@keyframes fc-page-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+#fc-mini {
+    view-transition-name: fc-player;
+}
+
+::view-transition-old(fc-player),
+::view-transition-new(fc-player) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    ::view-transition-old(fc-page),
+    ::view-transition-new(fc-page) {
+        animation: none !important;
+    }
+}

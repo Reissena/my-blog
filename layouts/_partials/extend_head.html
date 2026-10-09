@@ -21,6 +21,29 @@
 <style>:root{--bg-image:url("{{ $url | safeCSS }}");}</style>
 {{- end -}}
 
+{{- /* 浏览器原生预取（Speculation Rules）：hover / 按下时提前取站内页面，
+       点链接时更快。**只用 prefetch，刻意不用 prerender** —— prerender 会在后台
+       真正渲染目标页并整个替换文档，反而会掐断正在播放的音乐。
+       这里是写死的字面 JSON（不要用 jsonify 插值：那个会被 html/template 转义成
+       &#34; 导致 JSON 失效）；/search/ 与 /admin/ 排除在外。
+       不支持的浏览器会自动忽略这段，无需处理。 */ -}}
+<script type="speculationrules">
+{
+  "prefetch": [
+    {
+      "where": {
+        "and": [
+          { "href_matches": "/*" },
+          { "not": { "href_matches": "/search/*" } },
+          { "not": { "href_matches": "/admin/*" } }
+        ]
+      },
+      "eagerness": "moderate"
+    }
+  ]
+}
+</script>
+
 {{- /* 主题切换的「圆形扩散」过渡（原生 View Transitions，零依赖）。
        脚本只做「包住」这件事：点击 #theme-toggle 时用 startViewTransition
        包住主题原有的切换逻辑；不支持该 API 或开启减少动效时直接放行。

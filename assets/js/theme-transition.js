@@ -82,11 +82,23 @@
             }
         }
 
+        // pjax 给内容区和迷你播放条起了 view-transition-name（切页动画用），
+        // 它们会画在 root 之上、圆形盖不住 —— 所以扩散前临时摘掉，结束再恢复。
+        var names = window.fcViewNames;
+        if (names) { try { names.clear(); } catch (e) { /* 忽略 */ } }
+
+        function restoreNames() {
+            if (names) { try { names.restore(); } catch (e) { /* 忽略 */ } }
+        }
+
         try {
-            document.startViewTransition(switchTheme);
+            var vt = document.startViewTransition(switchTheme);
+            if (vt && vt.finished && vt.finished.then) { vt.finished.then(restoreNames, restoreNames); }
+            else { restoreNames(); }
         } catch (err) {
             // 极端情况（例如文档不可见）下退回直接切换，保证功能不受影响
             switchTheme();
+            restoreNames();
         }
     }, true);
 })();
