@@ -2121,3 +2121,40 @@ body.fc-has-player .fc-mini {
         display: none !important;
     }
 }
+
+/* ------------------- 14. 背景图轮换（两层交叉淡入） */
+/* body::before 仍然是首屏背景（background.jpg，和以前完全一致）—— 它不参与轮换，
+   只是「JS 还没接管/图片还没下载完」时的底。这个容器盖在它上面：
+     · z-index 必须是 -2：可读性遮罩 body::after 是 -1，得让遮罩盖住轮换后的图
+       （遮罩原样保留，一个字没改）
+     · 两层各放一张图，切换时把下一张放进隐藏那层再淡入 = 真正的交叉淡入，不闪
+     · 容器和两层都在 footer（main.main 之外），pjax 只会换内容区，它们不会重建
+   层次：背景层(-2) < 遮罩(-1) < 内容 < 樱花 canvas(55) < 迷你播放条(60) */
+.fc-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+}
+
+.fc-bg-layer {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    opacity: 0;
+    transition: opacity 900ms ease-in-out;
+}
+
+.fc-bg-layer.is-on {
+    opacity: 1;
+}
+
+/* 开启「减少动效」：轮换照旧，只是不淡入淡出，直接切 */
+@media (prefers-reduced-motion: reduce) {
+
+    .fc-bg-layer {
+        transition: none;
+    }
+}

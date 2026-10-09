@@ -65,3 +65,28 @@
 {{- $sakura := resources.Get "js/sakura.js" | resources.Minify | resources.Fingerprint -}}
 <script defer src="{{ $sakura.RelPermalink }}" integrity="{{ $sakura.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- end -}}
+
+{{- /* =====================================================================
+     背景图定时轮换（常驻层，同样在内容区之外，pjax 不会替换）
+       · 图片走 Hugo 资源管线：background.jpg + assets/images/bg/* 自动收集，
+         以后加图只要丢进 assets/images/bg/ 就行，不用改代码
+       · URL 列表注入成内联 JSON（带指纹，缓存可靠），JS 不写死路径
+       · 两层交叉淡入，具体见 assets/js/background.js 与 fluent.css 第 14 节
+       · 这一段刻意放在 with $music 之外：没有音乐数据时背景照样要轮换
+     ===================================================================== */ -}}
+{{- $bgList := slice -}}
+{{- with resources.Get "images/background.jpg" -}}
+    {{- $bgList = $bgList | append (printf "%s%s" site.Home.RelPermalink (strings.TrimPrefix "/" .RelPermalink)) -}}
+{{- end -}}
+{{- range resources.Match "images/bg/*" -}}
+    {{- $bgList = $bgList | append (printf "%s%s" site.Home.RelPermalink (strings.TrimPrefix "/" .RelPermalink)) -}}
+{{- end -}}
+{{- if gt (len $bgList) 1 -}}
+<div class="fc-bg" id="fc-bg" aria-hidden="true">
+    <div class="fc-bg-layer" id="fc-bg-a"></div>
+    <div class="fc-bg-layer" id="fc-bg-b"></div>
+</div>
+<script type="application/json" id="fc-bg-data">{{ $bgList | jsonify | safeJS }}</script>
+{{- $bgjs := resources.Get "js/background.js" | resources.Minify | resources.Fingerprint -}}
+<script defer src="{{ $bgjs.RelPermalink }}" integrity="{{ $bgjs.Data.Integrity }}" crossorigin="anonymous"></script>
+{{- end -}}
