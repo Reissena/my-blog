@@ -42,6 +42,10 @@ mainSections = ["posts"]
   keywords = ["浮华Yun", "博客", "Hugo", "PaperMod", "技术笔记"]
   author = "浮华Yun"
 
+  # 页脚状态栏「本站已稳定运行」的起始日期（北京时间当天 00:00 起算）。
+  # 以后要改只动这一个字段，模板与脚本都从这里读。
+  siteLaunchDate = "2026-09-30"
+
   DateFormat = "2006-01-02"
   defaultTheme = "auto"
   disableThemeToggle = false

@@ -95,3 +95,63 @@
        放在 with $music 之外，没有音乐数据时也照常加载 */ -}}
 {{- $copyjs := resources.Get "js/copy-contact.js" | resources.Minify | resources.Fingerprint -}}
 <script defer src="{{ $copyjs.RelPermalink }}" integrity="{{ $copyjs.Data.Integrity }}" crossorigin="anonymous"></script>
+
+{{- /* =====================================================================
+     页脚状态栏：北京时间时钟 +「本站已稳定运行」+ 技术栈徽章
+       · 起始日期取自 hugo.toml 的 params.siteLaunchDate，经 data-since 交给 JS
+         （脚本里没有硬编码日期，改字段即可）
+       · 这里先用 Hugo 算一份静态文案：JS 没跑到 / 被禁用时也不是空白；
+         脚本接手后每秒刷新（时钟 + 运行时间共用一个定时器）
+       · 位置：主题 <footer> 之后 = 版权行下方；页脚在 main.main 之外，
+         pjax 换页不会替换它，所以时钟不会重置、也不会重复建定时器
+     ===================================================================== */ -}}
+{{- $since := site.Params.siteLaunchDate | default "2026-09-30" -}}
+{{- $elapsed := now.Sub (time.AsTime $since) -}}
+{{- $hours := $elapsed.Hours -}}
+{{- $uptime := "本站已稳定运行：0分钟" -}}
+{{- if ge $hours 8760 -}}
+    {{- $uptime = printf "本站已稳定运行：%d年%d天" (div (int (math.Floor $hours)) 8760) (div (mod (int (math.Floor $hours)) 8760) 24) -}}
+{{- else if ge $hours 1 -}}
+    {{- $uptime = printf "本站已稳定运行：%d天%d小时" (div (int (math.Floor $hours)) 24) (mod (int (math.Floor $hours)) 24) -}}
+{{- else if ge $hours 0 -}}
+    {{- $uptime = printf "本站已稳定运行：%d分钟" (int (math.Floor $elapsed.Minutes)) -}}
+{{- end -}}
+<div class="fc-statusbar-wrap">
+    <div class="fc-statusbar fc-glass" id="fc-statusbar" data-since="{{ $since }}">
+        <div class="fc-statusbar-clock">
+            <span class="fc-statusbar-time" id="fc-statusbar-clock" title="北京时间（UTC+8），不随访客本地时区变化">--:--:--</span>
+            <span class="fc-statusbar-tz">北京时间</span>
+        </div>
+        <div class="fc-statusbar-uptime">
+            <span class="fc-statusbar-dot" aria-hidden="true"></span>
+            <span id="fc-statusbar-uptime">{{ $uptime }}</span>
+        </div>
+        <div class="fc-statusbar-stack">
+            {{- /* 技术栈：本站真实用的三样，胶囊样式沿用站内 .fc-chip */ -}}
+            <span class="fc-chip fc-statusbar-chip">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                    <path d="M6 4v16M18 4v16M6 12h12" />
+                </svg>
+                Hugo
+            </span>
+            <span class="fc-chip fc-statusbar-chip">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="1.8" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M7 3h7l5 5v13H7z" />
+                    <path d="M14 3v5h5" />
+                </svg>
+                PaperMod
+            </span>
+            <span class="fc-chip fc-statusbar-chip">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M7 18h10a3.5 3.5 0 0 0 .3-6.99A5 5 0 0 0 7.6 9.6 4.2 4.2 0 0 0 7 18z" />
+                </svg>
+                Cloudflare Workers
+            </span>
+        </div>
+    </div>
+</div>
+{{- $sbjs := resources.Get "js/statusbar.js" | resources.Minify | resources.Fingerprint -}}
+<script defer src="{{ $sbjs.RelPermalink }}" integrity="{{ $sbjs.Data.Integrity }}" crossorigin="anonymous"></script>
