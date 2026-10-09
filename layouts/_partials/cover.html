@@ -28,18 +28,26 @@
         {{- $alt := $ctx.Param "cover.alt" | default $ctx.Title -}}
         {{- $caption := $ctx.Param "cover.caption" -}}
         {{- $src := "" -}}
+        {{- $w := 0 -}}
+        {{- $h := 0 -}}
         {{- if or (hasPrefix . "http://") (hasPrefix . "https://") -}}
             {{- $src = . -}}
         {{- else -}}
             {{- $path := strings.TrimPrefix "/" . -}}
             {{- with resources.Get $path -}}
                 {{- $src = printf "%s%s" site.Home.RelPermalink (strings.TrimPrefix "/" .RelPermalink) -}}
+                {{- /* 真实宽高写进属性：首屏大图加载完成前后高度一致，不会顶动正文 */ -}}
+                {{- if eq .MediaType.MainType "image" -}}
+                    {{- $w = .Width -}}
+                    {{- $h = .Height -}}
+                {{- end -}}
             {{- else -}}
                 {{- $src = printf "%s%s" site.Home.RelPermalink $path -}}
             {{- end -}}
         {{- end -}}
 <figure class="fc-post-cover">
-    <img src="{{ $src }}" alt="{{ $alt }}" loading="eager" decoding="async">
+    <img src="{{ $src }}" alt="{{ $alt }}"{{ if $w }} width="{{ $w }}" height="{{ $h }}"{{ end }} loading="eager"
+        decoding="async">
     {{- if and $isSingle $caption }}
     <figcaption>{{ $caption | markdownify }}</figcaption>
     {{- end }}

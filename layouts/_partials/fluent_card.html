@@ -23,6 +23,8 @@
     {{- with .Params.images -}}{{- $cover = index . 0 -}}{{- end -}}
 {{- end -}}
 {{- $src := "" -}}
+{{- $w := 0 -}}
+{{- $h := 0 -}}
 {{- $alt := .Param "cover.alt" | default .Title -}}
 {{- with $cover -}}
     {{- if or (hasPrefix . "http://") (hasPrefix . "https://") -}}
@@ -31,6 +33,15 @@
         {{- $path := strings.TrimPrefix "/" . -}}
         {{- with resources.Get $path -}}
             {{- $src = printf "%s%s" site.Home.RelPermalink (strings.TrimPrefix "/" .RelPermalink) -}}
+            {{- /* 取真实宽高写进 width/height：浏览器第一帧就按正确比例留好位置，
+                   懒加载完成后不会跳动（也满足 DevTools 的
+                   "Lazy-loaded images should have explicit dimensions"）。
+                   外链与 static/ 下的图拿不到尺寸，就靠 .fc-card-cover 的
+                   aspect-ratio: 16/9 兜底。 */ -}}
+            {{- if eq .MediaType.MainType "image" -}}
+                {{- $w = .Width -}}
+                {{- $h = .Height -}}
+            {{- end -}}
         {{- else -}}
             {{- $src = printf "%s%s" site.Home.RelPermalink $path -}}
         {{- end -}}
@@ -39,7 +50,8 @@
 <article class="fc-card">
     <div class="fc-card-cover">
         {{- if $src }}
-        <img src="{{ $src }}" alt="{{ $alt }}" loading="lazy" decoding="async">
+        <img src="{{ $src }}" alt="{{ $alt }}"{{ if $w }} width="{{ $w }}" height="{{ $h }}"{{ end }} loading="lazy"
+            decoding="async">
         {{- else }}
         <span class="fc-card-cover-ph" aria-hidden="true">{{ substr .Title 0 1 }}</span>
         {{- end }}

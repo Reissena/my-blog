@@ -889,6 +889,25 @@ body.list {
     .fc-side-latest {
         order: 3;
     }
+
+    /* 首页窄屏：右侧栏那张「个人信息」卡（头像 + 站名 + 三格统计）与作者卡完全重复，
+       一屏之内会看到两套一样的头像/站名/数字，所以整张隐藏、彻底不占位。
+       作者卡内容更全（多了简介与社交图标），保留它。
+       列表页没有作者卡，因此那边不受影响；桌面端（>1024px）三栏布局不变，
+       这张卡照常显示。 */
+    .fc-layout--home .fc-side-profile {
+        display: none;
+    }
+}
+
+/* 超窄屏（≤430px）：再收紧一点分段导航的间距，尽量少占行 */
+@media screen and (max-width: 430px) {
+
+    .fc-segmented a,
+    .fc-segmented a span {
+        padding: 0 10px;
+        font-size: 13px;
+    }
 }
 
 /* --------------------------------------- 6c. 左导航「目录树」样式 */
@@ -1227,18 +1246,33 @@ a.fc-pager-link:hover {
         flex: 1 1 auto;
     }
 
-    /* 手机上导航整行横向滚动，不换行不挤压 */
+    /* 手机上导航整行换行显示。原来是 nowrap + overflow-x:auto 的横向滚动，
+       窄屏（如 400px）装不下时最后一项会被截成半截字（「搜索」只剩「搜」）；
+       改成换行后一项都不会被截断，也不产生页面横向滚动条。
+       同时把每项高度提到 40px，保证触摸目标够大。 */
     .fc-segmented {
         order: 3;
+        /* 独占一整行：flex-basis 100% + 不收缩，避免被左侧站名挤窄后
+           同一个胶囊里又折行、看起来更挤 */
+        flex: 1 0 100%;
         width: 100%;
-        flex-wrap: nowrap;
-        overflow-x: auto;
+        flex-wrap: wrap;
+        overflow-x: visible;
+        row-gap: 4px;
     }
 
-    .fc-segmented a,
+    /* 内边距只留在 span 上：原来 a 和 span 各带一份 padding，每项会宽到 75px，
+       5 项就要 389px，390/400px 宽度下只好折成两行。收成一份后每项约 51px，
+       一行就能放下，仍然 40px 高（触摸目标够大）。 */
+    .fc-segmented a {
+        height: 40px;
+        padding: 0;
+        font-size: 13.5px;
+    }
+
     .fc-segmented a span {
-        height: 32px;
-        padding: 0 13px;
+        height: 40px;
+        padding: 0 12px;
         font-size: 13.5px;
     }
 

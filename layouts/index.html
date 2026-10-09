@@ -12,7 +12,7 @@
 {{- $posts := where site.RegularPages "Type" "in" site.Params.mainSections }}
 {{- $paginator := .Paginate $posts }}
 
-<div class="fc-layout">
+<div class="fc-layout fc-layout--home">
     {{- partial "site_nav.html" . }}
     <div class="fc-main-col">
 
