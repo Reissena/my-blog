@@ -45,6 +45,11 @@
     /* 滑块的轨道底色（轨道压在玻璃胶囊上，白/深两套各给一个看得见的灰） */
     --fc-clarity-track: rgba(15, 23, 42, 0.16);
 
+    /* 技能页的「标签」：浅色下比卡片再亮一点（像浮起来的小块），
+       描边用淡墨线 —— 白色描边压在白卡上是看不见的。 */
+    --fc-skill-bg: rgba(255, 255, 255, 0.55);
+    --fc-skill-stroke: rgba(15, 23, 42, 0.08);
+
     /* 背景遮罩降到 30% 以后，卡片上的次要文字（日期 / 摘要 / 统计小字 / 状态栏小字）
        用主题原来的 rgb(108,108,108) 已经撑不住 4.5:1（实测最坏 ~3.9），按实测把这一档
        压深。这是「改文字颜色」，不是把遮罩抬回去。 */
@@ -90,6 +95,9 @@
     --fc-bare-backing: rgba(10, 12, 16, calc(0.70 * var(--fc-clarity) / 100));
     --fc-footer-backing: rgba(10, 12, 16, calc(0.80 * var(--fc-clarity) / 100));
     --fc-clarity-track: rgba(255, 255, 255, 0.22);
+    /* 深色下反过来：标签比卡片再暗一点，浅色文字才有余量 */
+    --fc-skill-bg: rgba(0, 0, 0, 0.22);
+    --fc-skill-stroke: rgba(255, 255, 255, 0.10);
 }
 
 /* ------------------------------------------------------- 2. 整页固定背景图 */
@@ -1382,19 +1390,23 @@ a.fc-pager-link:hover {
         row-gap: 4px;
     }
 
-    /* 内边距只留在 span 上：原来 a 和 span 各带一份 padding，每项会宽到 75px，
-       5 项就要 389px，390/400px 宽度下只好折成两行。收成一份后每项约 51px，
-       一行就能放下，仍然 40px 高（触摸目标够大）。 */
+    /* 内边距只留在 span 上：原来 a 和 span 各带一份 padding，每项会宽到 75px。
+       收成一份后每项 = 字号×2 + 左右内边距。导航从 6 项变 7 项（多了「技能」）后，
+       13.5px / 0 12px 每项 51px，7 项要 369px，而 390px 屏上胶囊只给得出 352px，
+       flex-wrap 会把「搜索」单独挤到第二行（6+1，很难看）。
+       所以窄屏把字号收到 13px、左右内边距收到 9px，每项 44px ——
+       7 项 320px，390px 屏放得下，连 360px 的老安卓也放得下，一项都不会被截断。
+       高度仍然 40px，触摸目标够大。 */
     .fc-segmented a {
         height: 40px;
         padding: 0;
-        font-size: 13.5px;
+        font-size: 13px;
     }
 
     .fc-segmented a span {
         height: 40px;
-        padding: 0 12px;
-        font-size: 13.5px;
+        padding: 0 9px;
+        font-size: 13px;
     }
 
     .fc-brand-text {
@@ -3355,4 +3367,139 @@ body.fc-has-mini .fc-clarity {
    这里只把**这一格的底色**压淡（0.14 → 0.05），状态栏的结构、文案、其它颜色一律没动。 */
 [data-theme="dark"] .fc-statusbar-clock {
     background: rgba(96, 205, 255, 0.05);
+}
+
+/* ---------------- 20. 技能 / 技术栈页（/skills/） ---------------- */
+/* 内容全部来自 data/skills.yaml（模板里没有硬编码），这里只管长相。
+   整页没有「直接压在背景上」的文字：标题在 .fc-page-head 卡片里、分类名在
+   .fc-skills-group 卡片里，所以不需要底衬。（.fc-page-head / .fc-page-title /
+   .fc-page-desc / .fc-chip 都是列表页、音乐页在用的现成样式，没有另开一套。） */
+.fc-skills-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin: var(--gap) 0;
+}
+
+.fc-skills-group {
+    padding: 18px 20px 20px;
+}
+
+/* 页头那颗「5 个分类 · 22 项」的小胶囊：.fc-chip 原本是强调色字压强调色浅底，
+   实测在「背景清晰度」拉高、遮罩变薄之后只剩 3.3:1（浅色）。这里**只改技能页这一颗**
+   （选择器限定在 .fc-skills-page 里），换成跟技术标签同一套底色 + --secondary 字
+   （实测 6:1 以上）；.fc-chip 本身的定义一个字都没动，音乐页那颗照旧。 */
+.fc-skills-page .fc-page-head .fc-chip {
+    background: var(--fc-skill-bg);
+    border-color: var(--fc-skill-stroke);
+    color: var(--secondary);
+}
+
+/* 分类名 + 分类说明，下面一条细线跟标签组分隔开 */
+.fc-skills-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--fc-glass-stroke);
+}
+
+.fc-skills-cat {
+    margin: 0;
+    color: var(--primary);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.fc-skills-catdesc {
+    margin: 0;
+    color: var(--secondary);
+    font-size: 13px;
+}
+
+/* 标签组：窄屏自动落成单列，宽屏 2~3 列 */
+.fc-skills-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.fc-skill {
+    display: flex;
+}
+
+/* 整块就是一个链接：点名字、点描述、点域名都去官网；
+   不是「必须悬停才出现」的东西，触摸设备直接点得到。 */
+.fc-skill-link {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--fc-skill-stroke);
+    border-radius: var(--fc-radius-inner);
+    background: var(--fc-skill-bg);
+    text-decoration: none;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.fc-skill-link:hover,
+.fc-skill-link:focus-visible {
+    transform: translateY(-2px);
+    border-color: var(--fc-glass-stroke-hover);
+    box-shadow: var(--fc-shadow);
+}
+
+.fc-skill-link:focus-visible {
+    outline: 2px solid var(--fc-accent);
+    outline-offset: 2px;
+}
+
+/* 名字用 --primary 而不是强调色：强调色 #0f6cbd 压在浅灰底上只有 3.4:1，
+   读不清；强调色留给右下角那个小外链图标和悬停描边。 */
+.fc-skill-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--primary);
+    font-size: 14.5px;
+    font-weight: 600;
+}
+
+.fc-skill-icon {
+    flex: none;
+    width: 13px;
+    height: 13px;
+    color: var(--fc-accent);
+    opacity: 0.8;
+}
+
+/* 描述 13px —— 不是 10px 小灰字，手机上也能看清 */
+.fc-skill-desc {
+    color: var(--secondary);
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.fc-skill-host {
+    margin-top: 2px;
+    color: var(--secondary);
+    font-size: 12px;
+    word-break: break-all;
+}
+
+@media screen and (max-width: 768px) {
+    .fc-skills-group {
+        padding: 16px 14px 18px;
+    }
+
+    .fc-skills-list {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+    }
 }

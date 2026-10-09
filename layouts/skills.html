@@ -1,0 +1,58 @@
+{{- /* =====================================================================
+     技能 / 技术栈页（content/skills.md 里 layout: "skills" 选中本模板）
+     ---------------------------------------------------------------------
+     · 技术清单**全部来自 data/skills.yaml**，这个模板里没有硬编码任何技术名 ——
+       以后加一项只改数据文件（或者直接在网页后台改，见 .pages.yml）。
+     · 结构：页头（标题 + 一句话说明 + 计数）→ 每个分类一张玻璃卡 →
+       分类名 + 分类说明 + 一组「标签」。
+     · 每个标签整体就是一个 <a>：点哪都能去官网，target=_blank，不需要先悬停，
+       触摸设备也点得到。标签里三行：名字 / 描述 / 来源域名。
+     · 整页没有「直接压在背景图上」的文字：标题在 .fc-page-head 卡片里，
+       分类名在 .fc-skills-group 卡片里，所以不需要额外加底衬。
+     ===================================================================== */ -}}
+{{- define "main" }}
+{{- $cats := hugo.Data.skills -}}
+{{- $total := 0 -}}
+{{- range $cats }}{{ $total = add $total (len .items) }}{{ end -}}
+<div class="fc-skills-page">
+    <header class="fc-page-head fc-glass">
+        <h1 class="fc-page-title">{{ .Title }}</h1>
+        {{- with .Params.subtitle }}<p class="fc-page-desc">{{ . }}</p>{{ end }}
+        <span class="fc-chip">{{ len $cats }} 个分类 · {{ $total }} 项</span>
+    </header>
+
+    {{- range $cats }}
+    <section class="fc-skills-group fc-glass">
+        <div class="fc-skills-head">
+            <h2 class="fc-skills-cat">{{ .name }}</h2>
+            {{- with .desc }}<p class="fc-skills-catdesc">{{ . }}</p>{{ end }}
+        </div>
+
+        <ul class="fc-skills-list">
+            {{- range .items }}
+            {{- $host := "" -}}
+            {{- with .url }}{{ $host = (urls.Parse .).Host }}{{ end -}}
+            <li class="fc-skill">
+                {{- /* 整块可点：名字 / 描述 / 来源域名都在链接里，外链新标签页打开 */ -}}
+                <a class="fc-skill-link" href="{{ .url }}" target="_blank" rel="noopener noreferrer"
+                    title="{{ .name }} 官网（新标签页打开）">
+                    <span class="fc-skill-name">
+                        {{ .name }}
+                        <svg class="fc-skill-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            aria-hidden="true">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <path d="M15 3h6v6"></path>
+                            <path d="M10 14 21 3"></path>
+                        </svg>
+                    </span>
+                    <span class="fc-skill-desc">{{ .desc }}</span>
+                    {{- with $host }}<span class="fc-skill-host">{{ . }}</span>{{ end }}
+                </a>
+            </li>
+            {{- end }}
+        </ul>
+    </section>
+    {{- end }}
+</div>
+{{- end }}

@@ -95,3 +95,51 @@ content:
         type: rich-text
         options:
           media: images
+
+  # 技能 / 技术栈清单（页面 /skills/ 的内容全部读这个文件）
+  # · data/skills.yaml 本身就是「分类数组」，所以这里用 type: file + list: true
+  #   （list: true 用在 file 上 = 整个文件就是一个顶层数组，见 Pages CMS 文档的 List 一节）
+  # · 分类、以及分类下的技术，都是可增删的：字段类型里没有 `list` 这种 type，
+  #   要可重复是给字段加 `list` 这个属性 —— 对象也可以，写 list: true 或
+  #   list: { min, max, collapsible } 都行。
+  - name: skills
+    label: 技能 / 技术栈
+    type: file
+    path: data/skills.yaml
+    format: yaml
+    list: true
+    fields:
+      - name: name
+        label: 分类名
+        type: string
+        required: true
+
+      - name: desc
+        label: 分类说明（可选，显示在分类名旁边）
+        type: string
+
+      - name: items
+        label: 这个分类下的技术（可加多个）
+        type: object
+        list:
+          min: 1
+          collapsible:
+            collapsed: true
+            summary: "{fields.name}"
+        fields:
+          - name: name
+            label: 技术名字
+            type: string
+            required: true
+
+          - name: desc
+            label: 描述（一句话说清它是什么 / 在这个站里干什么）
+            type: text
+            required: true
+            options:
+              maxlength: 300
+
+          - name: url
+            label: 来源网站（官网链接，页面上会新标签页打开）
+            type: string
+            required: true

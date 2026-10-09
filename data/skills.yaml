@@ -1,0 +1,116 @@
+# ============================================================================
+# 技能 / 技术栈清单 —— 页面 /skills/ 的全部内容都读这个文件
+# ----------------------------------------------------------------------------
+# · 模板（layouts/skills.html）里**没有硬编码**任何技术名，加一项只改这里。
+# · 后台也能改：.pages.yml 里把这个文件暴露成了「技能 / 技术栈」表单，
+#   分类可增删、每个分类下的技术也可增删。
+# · 收录标准只有一个：**本站真的在用，并且能在仓库里指出用在哪**。
+#   没实际用到的一律不列。
+#
+# 文件本身就是「分类数组」，所以 .pages.yml 里用 type: file + list: true。
+# 每个分类：name（分类名）/ desc（分类说明，可选）/ items（下面的技术）
+# 每项技术：name（名字）/ desc（一句话说清它是什么、在这个站里干什么）/ url（官网）
+# ============================================================================
+
+- name: "构建与站点"
+  desc: "把 Markdown 和模板编译成纯静态网页的那一层"
+  items:
+    - name: "Hugo"
+      desc: "整站的构建引擎（extended 版）。它把文章和模板编译成 public/ 里的一堆静态文件，不需要服务器、不需要数据库。"
+      url: "https://gohugo.io/"
+
+    - name: "PaperMod"
+      desc: "Hugo 主题，本站的版式底座。不过样式与结构几乎都被项目的 layouts/ 和 fluent.css 重写过，主题本体保持原样。"
+      url: "https://github.com/adityatelange/hugo-PaperMod"
+
+    - name: "Markdown + Goldmark"
+      desc: "文章用 Markdown 写，由 Hugo 内置的 Goldmark 渲染；本站开了 unsafe，所以正文里也能直接写 HTML。"
+      url: "https://gohugo.io/getting-started/configuration-markup/"
+
+    - name: "Hugo 资源管线"
+      desc: "样式与脚本由 Hugo 自动合并、压缩、加内容指纹，并生成 SRI 完整性校验值，缓存与安全两头都省心。"
+      url: "https://gohugo.io/hugo-pipes/"
+
+    - name: "Hugo 短代码"
+      desc: "自定义短代码：文章正文里写一行 bilibili 短代码，就会渲染成一个 16:9 的 B 站播放器。"
+      url: "https://gohugo.io/content-management/shortcodes/"
+
+- name: "前端与交互"
+  desc: "全部手写，没有引入任何第三方前端库"
+  items:
+    - name: "原生 JavaScript"
+      desc: "全站前端脚本都是手写的，零第三方库：仓库里没有 package.json，页面里也没有任何 CDN 引入的脚本。"
+      url: "https://developer.mozilla.org/zh-CN/docs/Web/JavaScript"
+
+    - name: "CSS 自定义属性"
+      desc: "颜色、圆角、模糊、遮罩这些设计令牌集中在 :root 里；左下角「背景清晰度」滑块拖动时也只改一个自定义属性。"
+      url: "https://developer.mozilla.org/zh-CN/docs/Web/CSS/Using_CSS_custom_properties"
+
+    - name: "backdrop-filter"
+      desc: "页头、卡片、页脚状态栏的磨砂玻璃质感：半透明底色加上把身后背景模糊掉的 backdrop-filter。"
+      url: "https://developer.mozilla.org/zh-CN/docs/Web/CSS/backdrop-filter"
+
+    - name: "pjax 无刷新切页"
+      desc: "自研的无刷新切页：点站内链接只替换内容区，正在播放的音乐不会被掐断，滚动位置也会记住。"
+      url: "https://developer.mozilla.org/zh-CN/docs/Web/API/Fetch_API"
+
+    - name: "View Transitions API"
+      desc: "切页与深色/浅色切换的过渡动画，用浏览器原生的视图过渡 API 实现；不支持或开了「减少动效」就自动降级。"
+      url: "https://developer.mozilla.org/zh-CN/docs/Web/API/View_Transition_API"
+
+    - name: "Canvas 2D"
+      desc: "左下角开关控制的樱花飘落，是画在 canvas 上的粒子动画，页面不可见时会自动停下省电。"
+      url: "https://developer.mozilla.org/zh-CN/docs/Web/API/Canvas_API"
+
+    - name: "localStorage"
+      desc: "在本地记住一些偏好：音乐音量与播放进度、樱花开关、侧栏目录的滚动位置。"
+      url: "https://developer.mozilla.org/zh-CN/docs/Web/API/Window/localStorage"
+
+    - name: "Intl.DateTimeFormat"
+      desc: "页脚状态栏那个走字的时钟，用 Intl 固定按北京时间显示，不随访客本地时区变化。"
+      url: "https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat"
+
+    - name: "Speculation Rules"
+      desc: "鼠标悬停在站内链接上时提前把下一页取回来，点下去更快；只用预取不用预渲染（预渲染会掐断音乐）。"
+      url: "https://developer.mozilla.org/zh-CN/docs/Web/API/Speculation_Rules_API"
+
+- name: "部署与基础设施"
+  desc: "从 push 到上线，中间要经过的东西"
+  items:
+    - name: "Cloudflare Workers"
+      desc: "站点上线的运行平台：把 Hugo 生成的 public/ 当纯静态资源托管，一条 wrangler 命令发布，自带 HTTPS。"
+      url: "https://developers.cloudflare.com/workers/static-assets/"
+
+    - name: "Cloudflare R2"
+      desc: "音乐的对象存储：六首曲子的 MP3 都放在桶里，走 music.yunblog.com.cn 这个自定义域名分发，仓库里不再存音频。"
+      url: "https://developers.cloudflare.com/r2/"
+
+    - name: "Cloudflare DNS"
+      desc: "域名 yunblog.com.cn 的解析托管在 Cloudflare（实测 NS 就是 Cloudflare 的），Workers 与 R2 的自定义域名都挂在它下面。"
+      url: "https://www.cloudflare.com/dns/"
+
+    - name: "GitHub Actions"
+      desc: "往 main 分支一推，它就自动装 Hugo、构建、再发布到 Cloudflare Workers，全程不用手动操作。"
+      url: "https://docs.github.com/actions"
+
+    - name: "Git"
+      desc: "版本管理：每一次改动都有记录，改坏了随时能回退。"
+      url: "https://git-scm.com/"
+
+    - name: "GitHub"
+      desc: "代码与文章的托管仓库，同时也是网页后台保存时的提交目标。"
+      url: "https://github.com/"
+
+- name: "内容管理"
+  desc: "不写代码也能改站上的东西"
+  items:
+    - name: "Pages CMS"
+      desc: "网页后台：写文章、传图片、连这份技能清单都能在这里增删，点保存就直接提交到仓库，不用碰代码。"
+      url: "https://pagescms.org/"
+
+- name: "辅助脚本"
+  desc: "构建之外、偶尔跑一次的小工具"
+  items:
+    - name: "Python"
+      desc: "tools/ 下的辅助脚本：生成音乐播放列表、从 MP3 的 ID3 标签里抽封面、生成文章封面图与站点图标。"
+      url: "https://www.python.org/"
