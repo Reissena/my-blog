@@ -21,6 +21,16 @@
 <style>:root{--bg-image:url("{{ $url | safeCSS }}");}</style>
 {{- end -}}
 
+{{- /* 左下角「背景清晰度」滑块的初始档位。
+       值来自 hugo.toml 的 params.bgClarityDefault（模板与脚本都不硬编码），
+       注入成 CSS 变量，保证首屏就是正确档位、不会先按兜底值画一次再跳。
+       这段 <style> 在样式表之后（见主题 head.html 的调用位置），所以能盖住
+       fluent.css 里的兜底值；滑块拖动时 JS 只在 <html> 上加一条内联样式覆盖它。 */ -}}
+{{- $clarity := int (site.Params.bgClarityDefault | default 40) -}}
+{{- if lt $clarity 0 }}{{ $clarity = 0 }}{{ end -}}
+{{- if gt $clarity 70 }}{{ $clarity = 70 }}{{ end -}}
+<style>:root{--fc-clarity:{{ $clarity }}}</style>
+
 {{- /* 浏览器原生预取（Speculation Rules）：hover / 按下时提前取站内页面，
        点链接时更快。**只用 prefetch，刻意不用 prerender** —— prerender 会在后台
        真正渲染目标页并整个替换文档，反而会掐断正在播放的音乐。

@@ -155,3 +155,31 @@
 </div>
 {{- $sbjs := resources.Get "js/statusbar.js" | resources.Minify | resources.Fingerprint -}}
 <script defer src="{{ $sbjs.RelPermalink }}" integrity="{{ $sbjs.Data.Integrity }}" crossorigin="anonymous"></script>
+
+{{- /* =====================================================================
+     左下角「背景清晰度」竖直滑块
+       · 刻度 0~70，遮罩不透明度 = 100 − 清晰度；默认档位读 hugo.toml 的
+         params.bgClarityDefault，写进 value / data-default —— 脚本里没有硬编码，
+         改默认值只动 hugo.toml 那一个字段
+       · 拖动只改 <html> 上的一个 CSS 变量 --fc-clarity，渐变在 fluent.css 里用
+         calc() 从它算出来，所以是实时的、也不用重拼渐变
+       · 位置：左下角、**樱花开关的上方**（樱花开关 left 20 / bottom 20 / 38px，
+         本来就占着左下角）；样式见 fluent.css 第 19 节
+       · 和状态栏、迷你播放条一样放在 main.main 之外：pjax 只替换内容区，
+         所以它不会被换掉、不会重复挂载、访客拉过的数值也不会被重置
+       · 不写 localStorage：每次进站都回到默认档位
+     ===================================================================== */ -}}
+{{- $clarity := int (site.Params.bgClarityDefault | default 40) -}}
+{{- if lt $clarity 0 }}{{ $clarity = 0 }}{{ end -}}
+{{- if gt $clarity 70 }}{{ $clarity = 70 }}{{ end -}}
+<div class="fc-clarity fc-glass" id="fc-clarity" data-default="{{ $clarity }}">
+    <span class="fc-clarity-label" aria-hidden="true">清晰度</span>
+    <span class="fc-clarity-track">
+        <input class="fc-clarity-range" id="fc-clarity-range" type="range" min="0" max="70" step="1"
+            value="{{ $clarity }}" role="slider" aria-orientation="vertical" aria-label="背景清晰度"
+            aria-valuemin="0" aria-valuemax="70" aria-valuenow="{{ $clarity }}" title="背景清晰度（0~70）">
+    </span>
+    <output class="fc-clarity-value" id="fc-clarity-value" for="fc-clarity-range">{{ $clarity }}</output>
+</div>
+{{- $clarityjs := resources.Get "js/bg-clarity.js" | resources.Minify | resources.Fingerprint -}}
+<script defer src="{{ $clarityjs.RelPermalink }}" integrity="{{ $clarityjs.Data.Integrity }}" crossorigin="anonymous"></script>

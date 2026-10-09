@@ -34,6 +34,13 @@
     --fc-accent: #0f6cbd;
     --fc-accent-soft: rgba(15, 108, 189, 0.10);
 
+    /* 左下角「背景清晰度」滑块的档位（0~70）。真实初值由 extend_head.html 从
+       hugo.toml 的 params.bgClarityDefault 注入，这里只是没注入成功时的兜底。
+       遮罩不透明度 = 100 − 清晰度：0 → 全遮住；40 → 遮 60%；70 → 只遮 30%。 */
+    --fc-clarity: 40;
+    /* 滑块的轨道底色（轨道压在玻璃胶囊上，白/深两套各给一个看得见的灰） */
+    --fc-clarity-track: rgba(15, 23, 42, 0.16);
+
     /* 背景遮罩降到 30% 以后，卡片上的次要文字（日期 / 摘要 / 统计小字 / 状态栏小字）
        用主题原来的 rgb(108,108,108) 已经撑不住 4.5:1（实测最坏 ~3.9），按实测把这一档
        压深。这是「改文字颜色」，不是把遮罩抬回去。 */
@@ -73,12 +80,17 @@
     --secondary: rgb(195, 195, 195);
     --fc-bare-backing: rgba(10, 12, 16, 0.62);
     --fc-footer-backing: rgba(10, 12, 16, 0.62);
+    --fc-clarity-track: rgba(255, 255, 255, 0.22);
 }
 
 /* ------------------------------------------------------- 2. 整页固定背景图 */
 body {
     font-family: var(--fc-font);
     background: transparent;
+    /* 兜底：任何装饰层（例如底衬的 ::before）都不许顶出横向滚动条。
+       用 clip 而不是 hidden —— clip 不产生滚动容器，粘性页头照常工作，
+       固定定位的滑块 / 樱花 / 迷你播放条也不受影响。 */
+    overflow-x: clip;
 }
 
 /* 背景图铺满视口并固定（用 fixed 定位 + background-attachment 双保险，
@@ -95,11 +107,13 @@ body::before {
     background-attachment: fixed;
 }
 
-/* 可读性遮罩：浅色下压白、深色下压黑。中段（45%~56%）只压 30%，背景图透出约 70%；
-   顶/底两段按「中段最透、底部最实」的既有形状抬高，给页脚兜底。
-   中段降到 30% 之后，**单靠遮罩已经不可能**让直接压在背景上的文字达到 3:1 ——
-   底图从纯黑到纯白，文字无论选什么颜色，理论最好也只有 2.86:1（浅色）/ 3.19:1（深色）。
-   所以这些文字改由下面的「底衬」负责，见 .fc-section-title / .page-header / .footer。 */
+/* 可读性遮罩：浅色下压白、深色下压黑。**不透明度整个由 --fc-clarity 算出来** ——
+   遮罩 = (100 − 清晰度)/100，滑块拖动时 JS 只改这一个变量，这里的 calc() 自动跟上，
+   不需要每帧重拼渐变字符串。形状不变：中段（45%~56%）最透，顶 +0.15、底 +0.32
+   （底部最实，给页脚兜底；alpha 超过 1 会被浏览器自动夹到 1）。
+   注意：中段全透（清晰度 70 → 遮罩 0.30）时，**单靠遮罩不可能**让直接压在背景上的
+   文字达到 3:1 —— 底图从纯黑到纯白，文字无论什么颜色理论上限只有 2.86:1（浅色）/
+   3.19:1（深色）。所以那些文字另有「底衬」，见 .fc-section-title / .page-header / .footer。 */
 body::after {
     content: "";
     position: fixed;
@@ -107,18 +121,18 @@ body::after {
     z-index: -1;
     pointer-events: none;
     background: linear-gradient(180deg,
-            rgba(246, 249, 253, 0.45) 0%,
-            rgba(246, 249, 253, 0.30) 45%,
-            rgba(246, 249, 253, 0.30) 56%,
-            rgba(246, 249, 253, 0.62) 70%);
+            rgba(246, 249, 253, calc((100 - var(--fc-clarity)) / 100 + 0.15)) 0%,
+            rgba(246, 249, 253, calc((100 - var(--fc-clarity)) / 100)) 45%,
+            rgba(246, 249, 253, calc((100 - var(--fc-clarity)) / 100)) 56%,
+            rgba(246, 249, 253, calc((100 - var(--fc-clarity)) / 100 + 0.32)) 70%);
 }
 
 [data-theme="dark"] body::after {
     background: linear-gradient(180deg,
-            rgba(10, 12, 16, 0.45) 0%,
-            rgba(10, 12, 16, 0.30) 45%,
-            rgba(10, 12, 16, 0.30) 56%,
-            rgba(10, 12, 16, 0.62) 70%);
+            rgba(10, 12, 16, calc((100 - var(--fc-clarity)) / 100 + 0.15)) 0%,
+            rgba(10, 12, 16, calc((100 - var(--fc-clarity)) / 100)) 45%,
+            rgba(10, 12, 16, calc((100 - var(--fc-clarity)) / 100)) 56%,
+            rgba(10, 12, 16, calc((100 - var(--fc-clarity)) / 100 + 0.32)) 70%);
 }
 
 /* ---- 「底衬」：只给直接压在背景图上、底下没有卡片托着的文字加一层柔和的局部底 ----
@@ -137,7 +151,9 @@ body::after {
 .page-header::before {
     content: "";
     position: absolute;
-    inset: -10px -18px;
+    /* 横向只外扩 12px：这两个元素在窄屏上离视口左右各只有 14px，
+       外扩太多会顶出横向滚动条（实测过 390 / 768 / 1280 三档） */
+    inset: -10px -12px;
     z-index: -1;
     border-radius: var(--fc-radius-pill);
     background: var(--fc-bare-backing);
@@ -145,11 +161,14 @@ body::after {
     pointer-events: none;
 }
 
-/* 页脚那行是 12px 灰字，最吃底，单独用厚一点的底衬 */
+/* 页脚那行是 12px 灰字，最吃底，单独用厚一点的底衬。
+   注意横向**不外扩**：.footer 是通栏的（left 0 / right = 视口宽），
+   外扩多少就顶出多少横向溢出 —— 靠 blur 自己把左右边缘化开就够了，
+   反正文字左右各有 24px 内边距，字后面仍然是实心的那一层。 */
 .footer::before {
     content: "";
     position: absolute;
-    inset: -10px -18px;
+    inset: -10px 0;
     z-index: -1;
     border-radius: var(--fc-radius-pill);
     background: var(--fc-footer-backing);
@@ -3177,5 +3196,144 @@ body.fc-has-mini .fc-statusbar-wrap {
     .fc-songlist-state {
         padding: 0 5px;
         font-size: 10px;
+    }
+}
+
+/* ---------- 19. 左下角「背景清晰度」竖直滑块（驱动 --fc-clarity） ---------- */
+/* 访客自己决定背景图透出多少：刻度 0~70，遮罩不透明度 = 100 − 清晰度。
+   位置在左下角、**樱花开关的上方** —— 樱花开关本来就占着左下角（left 20 / bottom 20 /
+   38px），所以这里只能往上让，不能压住它。
+   结构由 layouts/_partials/extend_footer.html 渲染，在 main.main 之外：
+   pjax 只替换内容区，所以它不会被换掉、不会重复挂载、数值也不会被重置。
+   拖动、触摸、键盘（方向键 / Home / End）、role=slider、aria-value* 全部走原生
+   <input type=range>，所以不需要自己写 pointer 事件，手机上手势也是浏览器保证的。 */
+
+.fc-clarity {
+    position: fixed;
+    left: 20px;
+    /* 一次让开左下角三样常驻东西：樱花开关(20~58)、页脚状态栏(24~79)；
+       迷你播放条出现时状态栏整体上移 72px，所以再抬一档 */
+    bottom: 88px;
+    z-index: 61;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 46px;
+    padding: 12px 0 10px;
+    border-radius: var(--fc-radius-pill);
+}
+
+.fc-clarity:hover,
+.fc-clarity:focus-within {
+    box-shadow: var(--fc-shadow-hover);
+}
+
+body.fc-has-mini .fc-clarity {
+    bottom: 160px;
+}
+
+/* 「清晰度」三个字竖排 —— 一眼看懂这条拉条在调什么 */
+.fc-clarity-label {
+    writing-mode: vertical-rl;
+    font-size: 11px;
+    line-height: 1;
+    letter-spacing: 2px;
+    color: var(--secondary);
+    user-select: none;
+}
+
+/* 轨道容器：占住竖直方向的尺寸；真正的 range 在里面旋转 -90°。
+   转完 +x（min→max）朝上，所以「往上拉 = 更清晰」。 */
+.fc-clarity-track {
+    position: relative;
+    flex: none;
+    width: 22px;
+    height: 120px;
+}
+
+.fc-clarity-range {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 120px;
+    height: 22px;
+    margin: 0;
+    padding: 0;
+    background: none;
+    transform: translate(-50%, -50%) rotate(-90deg);
+    cursor: pointer;
+}
+
+.fc-clarity-range::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--fc-clarity-track);
+}
+
+.fc-clarity-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    margin-top: -6px;
+    border: 2px solid var(--fc-glass-bg-strong);
+    border-radius: 50%;
+    background: var(--fc-accent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+}
+
+.fc-clarity-range::-moz-range-track {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--fc-clarity-track);
+}
+
+.fc-clarity-range::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--fc-glass-bg-strong);
+    border-radius: 50%;
+    background: var(--fc-accent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+}
+
+/* 键盘聚焦：明确的描边（深浅色都用强调色） */
+.fc-clarity-range:focus-visible {
+    outline: 2px solid var(--fc-accent);
+    outline-offset: 4px;
+    border-radius: 999px;
+}
+
+.fc-clarity-value {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--primary);
+}
+
+@media screen and (max-width: 768px) {
+    .fc-clarity {
+        left: 12px;
+        width: 42px;
+        padding: 10px 0 8px;
+    }
+
+    .fc-clarity-track {
+        height: 104px;
+    }
+
+    .fc-clarity-range {
+        width: 104px;
+    }
+}
+
+@media print {
+
+    .fc-clarity {
+        display: none;
     }
 }

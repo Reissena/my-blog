@@ -46,6 +46,11 @@ mainSections = ["posts"]
   # 以后要改只动这一个字段，模板与脚本都从这里读。
   siteLaunchDate = "2026-09-30"
 
+  # 左下角「背景清晰度」滑块的默认档位（0~70，超出会被夹到范围内）。
+  # 遮罩不透明度 = 100 − 清晰度：0 = 背景全遮住，40 = 遮罩 60%，70 = 只遮 30%（背景最抢眼）。
+  # 只改这一个数字就能改全站默认值 —— 模板读它注入 CSS 变量，脚本里没有硬编码。
+  bgClarityDefault = 40
+
   DateFormat = "2006-01-02"
   defaultTheme = "auto"
   disableThemeToggle = false
