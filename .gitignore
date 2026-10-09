@@ -18,3 +18,7 @@ Thumbs.db
 
 # Wrangler local cache (机器相关，不要提交)
 .wrangler/
+
+# Python 缓存（tools/*.py 跑一次就会生成，别提交）
+__pycache__/
+*.pyc
