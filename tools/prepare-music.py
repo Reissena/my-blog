@@ -34,7 +34,8 @@ except Exception:  # pragma: no cover
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC_MUSIC = r"C:\Users\Administrator\Desktop\1音乐"
-LRC_DIRS = [r"D:\CloudMusic\VipSongsDownload", r"D:\CloudMusic"]
+# 歌词可能来自网易云目录，也可能直接躺在桌面音乐目录里（后加的两首就在那儿）
+LRC_DIRS = [r"D:\CloudMusic\VipSongsDownload", r"D:\CloudMusic", SRC_MUSIC]
 
 OUT_MUSIC = os.path.join(ROOT, "static", "music")
 OUT_COVERS = os.path.join(OUT_MUSIC, "covers")
@@ -48,8 +49,8 @@ TRACKS = [
         mp3="Senya - 華鳥風月 (幻想万華鏡 花の異変の章 OP主題歌).mp3",
         lrc="Senya - 華鳥風月 (幻想万華鏡 花の異変の章 OP主題歌).lrc",
     ),
-    dict(id="02-again", mp3="Vivienne - Again.mp3", lrc=None),
-    dict(id="03-ray-of-light", mp3="Vivienne - The Ray of Light.mp3", lrc=None),
+    dict(id="02-again", mp3="Vivienne - Again.mp3", lrc="again.lrc"),
+    dict(id="03-ray-of-light", mp3="Vivienne - The Ray of Light.mp3", lrc="The Ray of Light.lrc"),
     dict(id="04-hakugyokurou-kaidan", mp3="東京アクティブNEETs - 白玉楼階段の幻闘.mp3",
          lrc="東京アクティブNEETs - 白玉楼階段の幻闘.lrc"),
     dict(id="05-song-for-two", mp3="平井 大 - SONG FOR TWO.mp3", lrc=None),
@@ -165,18 +166,44 @@ def extract_cover(path, dest):
 
 
 # --------------------------------------------------------------------------- LRC
+# 常见制作信息角色（两种格式都会用到：网易云是 JSON 行，另一种是带时间轴的 [mm:ss] 行）
+CREDIT_ROLES = [
+    "作词", "作曲", "编曲", "制作人", "监制", "出品", "混音", "母带", "录音", "和声",
+    "吉他", "贝斯", "鼓", "键盘", "弦乐", "原曲", "演唱", "调教", "曲绘", "PV", "动画",
+    "lyrics", "lyricist", "music", "compose", "composer", "arrange", "arranger",
+    "producer", "mixing", "mix", "mastering", "master", "vocal", "vocals", "guitar",
+]
+
+
+def match_credit(text):
+    """把「角色 : 名字」这种制作信息行认出来（中英文冒号、冒号前后可能有空格）。
+       只认角色名单里的标签，避免把带冒号的正常歌词误伤成制作信息。"""
+    m = re.match(r"^\s*([A-Za-z\u4e00-\u9fff]{1,8})\s*[:：]\s*(\S.*?)\s*$", text)
+    if not m:
+        return None
+    role, name = m.group(1).strip(), m.group(2).strip()
+    if role.lower() in CREDIT_ROLES or role in CREDIT_ROLES:
+        return (role, name)
+    return None
+
+
 def parse_lrc(path):
-    """返回 (credits, lyrics, instrumental)
-       credits: [(角色, 名字)]，来自网易云 LRC 开头的 JSON 元数据行
-       lyrics : [(秒, 文本)]，只认 [mm:ss.xx] 行
+    """同时兼容两种 LRC：
+       ① 网易云格式：开头若干行是 JSON 元数据（制作信息），后面是 [mm:ss.xx] 歌词
+       ② 常见格式：制作信息本身就写成带时间轴的 [mm:ss.xx] 角色 : 名字
+       返回 (credits, lyrics, instrumental, stats)
+         credits    : [(角色, 名字)]
+         lyrics     : [(秒, 主行, 译文)]，同一时间戳连续两行视为「原文 + 翻译」
+         stats      : dict(lines=主行数, pairs=双语对数, skipped=被当制作信息/占位跳过的行数)
     """
-    credits, lyrics, instrumental = [], [], False
+    credits, instrumental = [], False
+    entries = []  # [(秒, 文本)]
     with open(path, "r", encoding="utf-8-sig", errors="replace") as f:
         for line in f:
             s = line.strip()
             if not s:
                 continue
-            if s.startswith("{"):  # 网易云的 JSON 元数据行，不是歌词
+            if s.startswith("{"):  # 网易云的 JSON 元数据行
                 try:
                     obj = json.loads(s)
                 except Exception:
@@ -184,23 +211,44 @@ def parse_lrc(path):
                 text = "".join(str(c.get("tx", "")) for c in obj.get("c", [])).strip()
                 if text:
                     m = re.match(r"^([^:：]{1,8})[:：]\s*(.+)$", text)
-                    if m:
-                        role, name = m.group(1).strip(), m.group(2).strip()
-                        if (role, name) not in credits:
-                            credits.append((role, name))
+                    if m and (m.group(1).strip(), m.group(2).strip()) not in credits:
+                        credits.append((m.group(1).strip(), m.group(2).strip()))
                 continue
             m = re.match(r"^\[(\d{1,3}):(\d{1,2}(?:[.:]\d{1,3})?)\]\s*(.*)$", s)
             if not m:
                 continue
             sec = int(m.group(1)) * 60 + float(m.group(2).replace(":", "."))
-            text = m.group(3).strip()
-            if not text:
-                continue
-            if "纯音乐" in text and len(text) <= 12:  # 「纯音乐，请欣赏」
-                instrumental = True
-                continue
-            lyrics.append((sec, text))
-    return credits, lyrics, instrumental
+            entries.append((sec, m.group(3).strip()))
+
+    # 先摘出制作信息与占位行，剩下的才是歌词
+    kept, skipped = [], 0
+    for sec, text in entries:
+        if not text:
+            continue  # 只有时间戳的空行
+        if "纯音乐" in text and len(text) <= 12:
+            instrumental = True
+            skipped += 1
+            continue
+        credit = match_credit(text)
+        if credit:
+            if credit not in credits:
+                credits.append(credit)
+            skipped += 1
+            continue
+        kept.append((sec, text))
+
+    # 同一时间戳连续两行 = 原文 + 翻译，配对成「主行 + 译文」
+    lyrics, pairs, i = [], 0, 0
+    while i < len(kept):
+        sec, text = kept[i]
+        sub = ""
+        if i + 1 < len(kept) and abs(kept[i + 1][0] - sec) < 0.01:
+            sub = kept[i + 1][1]
+            pairs += 1
+            i += 1
+        lyrics.append((sec, text, sub))
+        i += 1
+    return credits, lyrics, instrumental, {"lines": len(lyrics), "pairs": pairs, "skipped": skipped}
 
 
 # --------------------------------------------------------------------------- YAML
@@ -259,7 +307,7 @@ def main():
         artist = tag_artist or file_artist
 
         # 3) 复制 + 解析歌词
-        lyrics_url, credits, n_lines, instrumental = "", [], 0, False
+        lyrics_url, credits, n_lines, n_pairs, instrumental = "", [], 0, 0, False
         if t["lrc"]:
             lrc_src = None
             for d in LRC_DIRS:
@@ -270,9 +318,9 @@ def main():
             if lrc_src:
                 shutil.copy2(lrc_src, os.path.join(OUT_LYRICS, t["id"] + ".lrc"))
                 lyrics_url = "/music/lyrics/%s.lrc" % t["id"]
-                credits, lines, instrumental = parse_lrc(lrc_src)
+                credits, lines, instrumental, lstats = parse_lrc(lrc_src)
                 credits = sort_credits(credits)
-                n_lines = len(lines)
+                n_lines, n_pairs = lstats["lines"], lstats["pairs"]
             else:
                 problems.append("缺少歌词源文件: " + t["lrc"])
 
@@ -281,6 +329,7 @@ def main():
             file="/music/%s.mp3" % t["id"], cover=cover_url, lyrics=lyrics_url,
             instrumental=instrumental, credits=credits,
             size=os.path.getsize(dst_mp3), cover_note=cover_note, n_lines=n_lines,
+            n_pairs=n_pairs,
         ))
 
     # 4) 写 data/music.yaml
@@ -314,9 +363,9 @@ def main():
     print("%-24s %-34s %-18s %s" % ("id", "title", "artist", "素材"))
     print("-" * 78)
     for r in rows:
-        print("%-24s %-34s %-18s mp3 %5.1f MB | %s | 歌词行数 %d%s" % (
+        print("%-24s %-34s %-18s mp3 %5.1f MB | %s | 歌词 %d 行（双语成对 %d）%s" % (
             r["id"], r["title"][:32], r["artist"][:16],
-            r["size"] / 1048576.0, r["cover_note"], r["n_lines"],
+            r["size"] / 1048576.0, r["cover_note"], r["n_lines"], r["n_pairs"],
             " | 纯音乐" if r["instrumental"] else ""))
         if r["credits"]:
             print("%-24s   credits: %s" % ("", " / ".join("%s %s" % c for c in r["credits"])))

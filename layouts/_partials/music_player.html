@@ -1,10 +1,12 @@
 {{- /* =====================================================================
     音乐播放器（首页右侧大卡 + 下方歌词条）
     ---------------------------------------------------------------------
-    · 数据来自 data/music.yaml（site.Data.music），由 tools/prepare-music.py 生成
-    · 这里只渲染「初始状态」（第一首），实际播放/切歌/歌词同步全在
+    · 数据来自 data/music.yaml（hugo.Data.music），由 tools/prepare-music.py 生成
+    · 这里只渲染「初始状态」（第一首），实际播放/切歌/歌词同步/音量全在
       assets/js/music-player.js 里做；即使 JS 没跑，卡片也是完整的静态内容
-    · 全站常驻：其它页面右下角的迷你播放条在 _partials/extend_footer.html 里
+    · 这块在内容区里，pjax 换页时会被重建；播放器换完后会自己把状态刷回来
+      （音频对象不在 DOM 里，所以不会中断）
+    · 全站常驻的迷你播放条见 _partials/extend_footer.html
    ===================================================================== */ -}}
 {{- $music := hugo.Data.music -}}
 {{- with $music -}}
@@ -41,8 +43,8 @@
 
         <div class="fc-player-progress">
             <span class="fc-player-time" id="fc-time-cur">00:00</span>
-            <input class="fc-player-seek" id="fc-seek" type="range" min="0" max="1000" step="1" value="0"
-                aria-label="播放进度">
+            <input class="fc-player-seek" id="fc-seek" data-fc="seek" type="range" min="0" max="1000" step="1"
+                value="0" aria-label="播放进度">
             <span class="fc-player-time" id="fc-time-total">00:00</span>
         </div>
 
@@ -69,11 +71,34 @@
                 </svg>
             </button>
         </div>
+
+        <div class="fc-player-volume">
+            <button class="fc-player-btn fc-player-btn--sm" type="button" data-fc="mute" aria-label="静音 / 取消静音"
+                title="静音 / 取消静音">
+                <svg class="fc-icon-vol" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 9.5h3l4-3.5v12l-4-3.5H4z" />
+                    <path d="M15 9a4 4 0 0 1 0 6" />
+                    <path d="M17.8 6.5a7.5 7.5 0 0 1 0 11" />
+                </svg>
+                <svg class="fc-icon-muted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 9.5h3l4-3.5v12l-4-3.5H4z" />
+                    <path d="m15.5 9.5 5 5" />
+                    <path d="m20.5 9.5-5 5" />
+                </svg>
+            </button>
+            <input class="fc-player-vol" type="range" min="0" max="100" step="1" value="80" data-fc="vol" aria-label="音量">
+            <span class="fc-player-vol-val" data-fc="vol-val">80</span>
+        </div>
     </section>
 
     <div class="fc-lyric fc-glass" id="fc-lyric" aria-live="polite">
         <p class="fc-lyric-line fc-lyric-line--prev" data-lyric="prev"></p>
-        <p class="fc-lyric-line fc-lyric-line--cur" data-lyric="cur">{{ $first.title }} · {{ $first.artist }}</p>
+        <p class="fc-lyric-line fc-lyric-line--cur" data-lyric="cur">
+            <span class="fc-lyric-main" data-lyric="main">{{ $first.title }} · {{ $first.artist }}</span>
+            <span class="fc-lyric-sub is-empty" data-lyric="sub"></span>
+        </p>
         <p class="fc-lyric-line fc-lyric-line--next" data-lyric="next"></p>
     </div>
 </div>

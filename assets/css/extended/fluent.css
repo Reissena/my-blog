@@ -1605,6 +1605,52 @@ a.fc-pager-link:hover {
     gap: 16px;
 }
 
+/* 音量行：静音按钮 + 滑块 + 数值 */
+.fc-player-volume {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+}
+
+.fc-player-btn--sm {
+    width: 34px;
+    height: 34px;
+}
+
+.fc-player-btn--sm svg {
+    width: 15px;
+    height: 15px;
+}
+
+.fc-player-vol {
+    width: 100%;
+    height: 4px;
+    accent-color: var(--fc-accent);
+    cursor: pointer;
+}
+
+.fc-player-vol-val {
+    min-width: 24px;
+    color: var(--secondary);
+    font-size: 11.5px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* 静音图标随状态切换（js 给按钮加 .is-muted） */
+.fc-icon-muted {
+    display: none;
+}
+
+[data-fc="mute"].is-muted .fc-icon-vol {
+    display: none;
+}
+
+[data-fc="mute"].is-muted .fc-icon-muted {
+    display: block;
+}
+
 .fc-player-btn {
     display: grid;
     place-items: center;
@@ -1682,12 +1728,41 @@ a.fc-pager-link:hover {
 }
 
 .fc-lyric-line--cur {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
     color: var(--fc-accent);
     font-size: 15px;
     font-weight: 600;
+    white-space: normal;
 }
 
-.fc-lyric-line--cur.is-placeholder {
+/* 主行 + 译文（同一时间戳的第二行） */
+.fc-lyric-main {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fc-lyric-sub {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--secondary);
+    font-size: 12.5px;
+    font-weight: 500;
+    opacity: 0.78;
+}
+
+.fc-lyric-sub.is-empty {
+    display: none;
+}
+
+.fc-lyric-line--cur.is-placeholder,
+.fc-lyric-main.is-placeholder {
     color: var(--secondary);
     font-weight: 500;
 }
@@ -1801,6 +1876,21 @@ body.fc-has-mini .top-link {
     }
 }
 
+/* pjax 换页后的内容淡入（只在没开「减少动效」时生效，见下方 media query） */
+@keyframes fc-fade-in {
+    from {
+        opacity: 0.55;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.fc-swap-in {
+    animation: fc-fade-in 0.18s ease;
+}
+
 @media screen and (max-width: 768px) {
     .fc-top {
         grid-template-columns: minmax(0, 1fr);
@@ -1847,7 +1937,12 @@ body.fc-has-mini .top-link {
 
     .fc-player-cover,
     .fc-mini-cover,
-    .fc-lyric-line.is-swap {
+    .fc-lyric-line.is-swap,
+    .fc-lyric-sub {
+        animation: none !important;
+    }
+
+    .fc-swap-in {
         animation: none !important;
     }
 

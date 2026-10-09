@@ -24,16 +24,22 @@
   artist: "Vivienne"
   file: "/music/02-again.mp3"
   cover: "/music/covers/02-again.jpg"
-  lyrics: ""
+  lyrics: "/music/lyrics/02-again.lrc"
   instrumental: false
-  credits: []
+  credits:
+    - role: "作词"
+      name: "Renko"
+    - role: "作曲"
+      name: "ZUN"
+    - role: "编曲"
+      name: "Maurits\"禅\"Cornelis"
 
 - id: "03-ray-of-light"
   title: "The Ray of Light"
   artist: "Vivienne"
   file: "/music/03-ray-of-light.mp3"
   cover: "/music/covers/03-ray-of-light.jpg"
-  lyrics: ""
+  lyrics: "/music/lyrics/03-ray-of-light.lrc"
   instrumental: false
   credits: []
 
