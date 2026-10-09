@@ -50,3 +50,12 @@
        过渡样式见 fluent.css 的 ::view-transition-* 规则。 */ -}}
 {{- $vt := resources.Get "js/theme-transition.js" | resources.Minify | resources.Fingerprint -}}
 <script defer src="{{ $vt.RelPermalink }}" integrity="{{ $vt.Data.Integrity }}" crossorigin="anonymous"></script>
+{{- /* 提前和音乐所在主机（R2 自定义域名）建连：DNS 与 TLS 握手先做完，点播放时少等一截。
+       主机名从 data/music.yaml 的 file 里解析，不写死；外链不是 http(s) 时自动跳过。 */ -}}
+{{- with (index hugo.Data.music 0).file -}}
+{{- $mu := urls.Parse . -}}
+{{- if and $mu.Host (or (eq $mu.Scheme "https") (eq $mu.Scheme "http")) -}}
+<link rel="dns-prefetch" href="//{{ $mu.Host }}">
+<link rel="preconnect" href="{{ $mu.Scheme }}://{{ $mu.Host }}" crossorigin>
+{{- end -}}
+{{- end -}}
