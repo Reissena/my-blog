@@ -34,6 +34,16 @@
     --fc-accent: #0f6cbd;
     --fc-accent-soft: rgba(15, 108, 189, 0.10);
 
+    /* 背景遮罩降到 30% 以后，卡片上的次要文字（日期 / 摘要 / 统计小字 / 状态栏小字）
+       用主题原来的 rgb(108,108,108) 已经撑不住 4.5:1（实测最坏 ~3.9），按实测把这一档
+       压深。这是「改文字颜色」，不是把遮罩抬回去。 */
+    --secondary: rgb(88, 88, 88);
+
+    /* 直接压在背景图上、底下没有卡片的文字用的「底衬」颜色，用法见第 2 节。
+       分两档：标题只要薄薄一层就够；页脚那行 12px 灰字最吃底，要厚一些。 */
+    --fc-bare-backing: rgba(255, 255, 255, 0.45);
+    --fc-footer-backing: rgba(255, 255, 255, 0.60);
+
     /* 顺手把主题自身的布局变量调大一点，卡片列表更舒展 */
     --radius: 10px;
     --main-width: 860px;
@@ -53,6 +63,16 @@
     /* 头像细边：深色背景下改用白色微光边 */
     --fc-avatar-stroke: rgba(255, 255, 255, 0.12);
     --fc-avatar-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
+/* 主题把深色的 --secondary 定义在 :root[data-theme="dark"] 上，比 [data-theme="dark"]
+   多一个 :root。要覆盖它必须抬到同样特异度、再靠「fluent.css 排在主题之后」取胜。 */
+:root[data-theme="dark"] {
+    /* 深色下卡片上的次要文字：背景透出更多以后 rgb(155,156,157) 实测最坏只有
+       ~3.9（状态栏时区那行更低），往上提一档。同样是改文字色，不是抬遮罩。 */
+    --secondary: rgb(195, 195, 195);
+    --fc-bare-backing: rgba(10, 12, 16, 0.62);
+    --fc-footer-backing: rgba(10, 12, 16, 0.62);
 }
 
 /* ------------------------------------------------------- 2. 整页固定背景图 */
@@ -75,17 +95,11 @@ body::before {
     background-attachment: fixed;
 }
 
-/* 可读性遮罩：浅色下压白、深色下压黑，保证任何底图上文字都够清晰。
-   渐变的中间段（45%~56%）是最透的；最下段（70% 起）反过来要压得更实 ——
-   页脚那一行 12px 灰字（--secondary）是**唯一**直接压在背景图上、
-   又没有卡片托底的次要文字，实测在最透处只有 1.57:1 / 1.88:1，必须靠底部兜底。
-   （页脚状态栏 .fc-statusbar 自带 .fc-glass，不受影响。）
-
-   浅色的中段为什么比深色压得更实（0.68 vs 0.60）：
-   浅色卡片上的次要文字是 --secondary = rgb(108,108,108)，它要拿到 4.5:1
-   需要底子亮到 L≥0.85（约 #F0F0F0 以上），比深色那套 rgb(155,156,157)
-   苛刻得多。卡片降到半透明后，中段一旦比 0.68 更透，卡片上的简介 / 摘要 /
-   日期 / 统计小字就会掉到 4.5:1 以下（headless Chrome 对 8 张背景图逐一实测）。 */
+/* 可读性遮罩：浅色下压白、深色下压黑。中段（45%~56%）只压 30%，背景图透出约 70%；
+   顶/底两段按「中段最透、底部最实」的既有形状抬高，给页脚兜底。
+   中段降到 30% 之后，**单靠遮罩已经不可能**让直接压在背景上的文字达到 3:1 ——
+   底图从纯黑到纯白，文字无论选什么颜色，理论最好也只有 2.86:1（浅色）/ 3.19:1（深色）。
+   所以这些文字改由下面的「底衬」负责，见 .fc-section-title / .page-header / .footer。 */
 body::after {
     content: "";
     position: fixed;
@@ -93,18 +107,54 @@ body::after {
     z-index: -1;
     pointer-events: none;
     background: linear-gradient(180deg,
-            rgba(246, 249, 253, 0.76) 0%,
-            rgba(246, 249, 253, 0.68) 45%,
-            rgba(246, 249, 253, 0.68) 56%,
-            rgba(246, 249, 253, 0.86) 70%);
+            rgba(246, 249, 253, 0.45) 0%,
+            rgba(246, 249, 253, 0.30) 45%,
+            rgba(246, 249, 253, 0.30) 56%,
+            rgba(246, 249, 253, 0.62) 70%);
 }
 
 [data-theme="dark"] body::after {
     background: linear-gradient(180deg,
-            rgba(10, 12, 16, 0.73) 0%,
-            rgba(10, 12, 16, 0.60) 45%,
-            rgba(10, 12, 16, 0.60) 56%,
-            rgba(10, 12, 16, 0.80) 70%);
+            rgba(10, 12, 16, 0.45) 0%,
+            rgba(10, 12, 16, 0.30) 45%,
+            rgba(10, 12, 16, 0.30) 56%,
+            rgba(10, 12, 16, 0.62) 70%);
+}
+
+/* ---- 「底衬」：只给直接压在背景图上、底下没有卡片托着的文字加一层柔和的局部底 ----
+   作用对象只有三个：首页区域标题、归档/标签/分类页的页头、页脚。
+   做法是 ::before 铺一层纯色底，再用 filter: blur() 让它四周化开 ——
+   中间仍然是实心的一层（所以文字正后方的对比度可测、稳定），边缘却没有硬边，
+   不描边、不加阴影，不会变成一张卡片。 */
+.fc-section-title,
+.page-header,
+.footer {
+    position: relative;
+    isolation: isolate;
+}
+
+.fc-section-title::before,
+.page-header::before {
+    content: "";
+    position: absolute;
+    inset: -10px -18px;
+    z-index: -1;
+    border-radius: var(--fc-radius-pill);
+    background: var(--fc-bare-backing);
+    filter: blur(8px);
+    pointer-events: none;
+}
+
+/* 页脚那行是 12px 灰字，最吃底，单独用厚一点的底衬 */
+.footer::before {
+    content: "";
+    position: absolute;
+    inset: -10px -18px;
+    z-index: -1;
+    border-radius: var(--fc-radius-pill);
+    background: var(--fc-footer-backing);
+    filter: blur(8px);
+    pointer-events: none;
 }
 
 /* 主题给 .list（列表类页面）铺了不透明底色，这里全部让位给背景图 */
