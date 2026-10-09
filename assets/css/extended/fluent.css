@@ -1429,10 +1429,14 @@ a.fc-pager-link:hover {
 .fc-profile-social {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;          /* 手机上图标多了要能换行 */
     gap: 10px;
 }
 
-.fc-profile-social a {
+/* 链接与「点击复制」按钮共用一套外观（QQ / 微信 / 邮箱是 button，
+   GitHub / RSS 还是 a），保持一致：同样尺寸、圆角、悬停与按下效果、同一套颜色令牌 */
+.fc-profile-social a,
+.fc-profile-social button {
     display: grid;
     place-items: center;
     width: 36px;
@@ -1444,10 +1448,32 @@ a.fc-pager-link:hover {
     transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
-.fc-profile-social a:hover {
+/* button 的浏览器默认样式清掉，才能和 a 长得一模一样 */
+.fc-profile-social button {
+    appearance: none;
+    -webkit-appearance: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    cursor: pointer;
+}
+
+.fc-profile-social a:hover,
+.fc-profile-social button:hover {
     background: var(--fc-accent);
     color: var(--fc-accent-ink);
     transform: translateY(-2px);
+}
+
+.fc-profile-social a:active,
+.fc-profile-social button:active {
+    transform: translateY(0) scale(0.94);
+}
+
+.fc-profile-social a:focus-visible,
+.fc-profile-social button:focus-visible {
+    outline: 2px solid var(--fc-accent);
+    outline-offset: 2px;
 }
 
 .fc-profile-social svg {
@@ -1955,12 +1981,15 @@ body.fc-has-player .fc-mini {
     }
 
     .fc-player-btn,
-    .fc-profile-social a {
+    .fc-profile-social a,
+    .fc-profile-social button,
+    .fc-copy-toast {
         transition: none;
     }
 
     .fc-player-btn:hover,
-    .fc-profile-social a:hover {
+    .fc-profile-social a:hover,
+    .fc-profile-social button:hover {
         transform: none;
     }
 }
@@ -2174,5 +2203,59 @@ body.fc-has-player .fc-mini {
 
     .fc-bg-layer {
         transition: none;
+    }
+}
+
+/* ------------- 15. 联系方式一键复制（QQ / 微信 / 邮箱 + 轻提示） */
+/* 复制成功后底部中间弹一条玻璃小条（复用 .fc-glass 的玻璃质感），1.6 秒淡出；
+   连续点击只重置计时，不会叠出好几条。z-index 70 高于迷你播放条(60)与樱花层(55)。 */
+.fc-copy-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 26px;
+    z-index: 70;
+    max-width: calc(100vw - 40px);
+    padding: 9px 16px;
+    border-radius: var(--fc-radius-pill);
+    font-size: 13.5px;
+    line-height: 1.25;
+    color: var(--primary);
+    opacity: 0;
+    transform: translate(-50%, 10px);
+    pointer-events: none;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.fc-copy-toast.is-on {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+/* 失败那一下用红色提示，深浅两套各给一个够对比的值 */
+.fc-copy-toast.is-bad {
+    color: #c0261f;
+}
+
+[data-theme="dark"] .fc-copy-toast.is-bad {
+    color: #ff9b93;
+}
+
+/* 手机上：图标按钮放大到 40px 保证触摸目标够大（图标排会自然换行），
+   迷你播放条贴底通栏时把提示条往上让一让 */
+@media screen and (max-width: 768px) {
+
+    .fc-profile-social a,
+    .fc-profile-social button {
+        width: 40px;
+        height: 40px;
+    }
+
+    .fc-profile-social svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    body.fc-has-mini .fc-copy-toast {
+        bottom: calc(12px + 74px);
     }
 }

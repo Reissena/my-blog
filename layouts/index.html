@@ -50,7 +50,9 @@
                     </a>
                 </div>
 
-                {{- /* 社交图标：GitHub 取自仓库 remote，邮箱取自 git 提交身份，RSS 是本站在线订阅 */ -}}
+                {{- /* 社交 / 联系方式：GitHub 与 RSS 是链接；QQ、微信、邮箱都是「点一下复制」，
+                       复制的值与提示语写在 data-copy / data-copy-done 上，
+                       逻辑（含降级与 toast）在 assets/js/copy-contact.js，事件委托所以 pjax 换页后照样能用 */ -}}
                 <div class="fc-profile-social">
                     <a href="https://github.com/Reissena" target="_blank" rel="noopener noreferrer" aria-label="GitHub"
                         title="GitHub">
@@ -59,13 +61,40 @@
                                 d="M12 2C6.48 2 2 6.58 2 12.23c0 4.51 2.87 8.34 6.84 9.69.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.89 1.57 2.34 1.12 2.91.85.09-.66.35-1.12.63-1.38-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.11-.26-.45-1.29.1-2.69 0 0 .84-.28 2.75 1.05a9.4 9.4 0 0 1 2.5-.34c.85 0 1.71.12 2.5.34 1.91-1.33 2.75-1.05 2.75-1.05.55 1.4.2 2.43.1 2.69.64.72 1.03 1.63 1.03 2.75 0 3.93-2.35 4.79-4.58 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.23C22 6.58 17.52 2 12 2z" />
                         </svg>
                     </a>
-                    <a href="mailto:3307590541@qq.com" aria-label="邮箱" title="3307590541@qq.com">
+                    <button type="button" data-copy="3307590541" data-copy-done="已复制 QQ 号" aria-label="复制 QQ 号"
+                        title="复制 QQ 号：3307590541">
+                        {{- /* 企鹅轮廓：圆头 + 两只白眼 + 小嘴 + 两侧短鳍（纯色填充，和 GitHub 那个同一路数） */ -}}
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path
+                                d="M12 2.8c-3 0-5 2.3-5 5.2 0 1-.2 1.8-.7 2.6-1 1.6-2.3 3.6-2.3 5.5 0 1.3.5 2.2 1.4 2.2.7 0 1.3-.5 1.8-1.4.5 1 1.2 1.9 2.1 2.5-.9.4-1.4.9-1.4 1.5 0 1 1.8 1.7 6.1 1.7s6.1-.7 6.1-1.7c0-.6-.5-1.1-1.4-1.5.9-.6 1.6-1.5 2.1-2.5.5.9 1.1 1.4 1.8 1.4.9 0 1.4-.9 1.4-2.2 0-1.9-1.3-3.9-2.3-5.5-.5-.8-.7-1.6-.7-2.6 0-2.9-2-5.2-5-5.2z" />
+                            <circle cx="10" cy="7.5" r="1.05" fill="#fff" />
+                            <circle cx="14" cy="7.5" r="1.05" fill="#fff" />
+                            <path d="M12 9.5c-.75 0-1.3.42-1.3.95s.55.95 1.3.95 1.3-.42 1.3-.95-.55-.95-1.3-.95z"
+                                fill="#fff" opacity=".85" />
+                        </svg>
+                    </button>
+                    <button type="button" data-copy="18795977932" data-copy-done="已复制微信号" aria-label="复制微信号"
+                        title="复制微信号：18795977932">
+                        {{- /* 微信：两个叠在一起的对话气泡，各两个白点（常见画法，17px 下也能认出来） */ -}}
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path
+                                d="M9.3 3.1C5.4 3.1 2.2 5.7 2.2 8.9c0 1.8 1 3.4 2.7 4.5l-.7 2.1 2.4-1.2c.7.2 1.5.3 2.3.3h.5a5.4 5.4 0 0 1-.2-1.4c0-2.9 2.9-5.3 6.4-5.3h.5C15.8 5 12.9 3.1 9.3 3.1z" />
+                            <circle cx="6.8" cy="7.4" r="1" fill="#fff" />
+                            <circle cx="11.1" cy="7.4" r="1" fill="#fff" />
+                            <path
+                                d="M21.8 13.2c0-2.7-2.7-4.9-6-4.9s-6 2.2-6 4.9 2.7 4.9 6 4.9c.7 0 1.3-.1 1.9-.3l2.1 1-.6-1.7c1.6-.9 2.6-2.3 2.6-3.9z" />
+                            <circle cx="13.4" cy="12.3" r=".9" fill="#fff" />
+                            <circle cx="17.6" cy="12.3" r=".9" fill="#fff" />
+                        </svg>
+                    </button>
+                    <button type="button" data-copy="3307590541@qq.com" data-copy-done="已复制邮箱" aria-label="复制邮箱"
+                        title="复制邮箱：3307590541@qq.com">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <rect x="3" y="5" width="18" height="14" rx="2.5" />
                             <path d="m4 7.5 8 5.5 8-5.5" />
                         </svg>
-                    </a>
+                    </button>
                     <a href="{{ "index.xml" | relLangURL }}" aria-label="RSS 订阅" title="RSS 订阅">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
