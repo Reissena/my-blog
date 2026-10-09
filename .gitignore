@@ -26,3 +26,6 @@ __pycache__/
 # 音乐 mp3 已迁移到 Cloudflare R2（桶 blog-music），仓库里只留封面与歌词；
 # 这条是防止以后手滑又把几百 MB 音频提交进来。
 static/music/*.mp3
+
+# 本地验证用的临时脚本目录（CDP 测试脚本等，不要提交）
+.chrome-test/
