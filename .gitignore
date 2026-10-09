@@ -22,3 +22,7 @@ Thumbs.db
 # Python 缓存（tools/*.py 跑一次就会生成，别提交）
 __pycache__/
 *.pyc
+
+# 音乐 mp3 已迁移到 Cloudflare R2（桶 blog-music），仓库里只留封面与歌词；
+# 这条是防止以后手滑又把几百 MB 音频提交进来。
+static/music/*.mp3

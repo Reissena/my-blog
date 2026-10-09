@@ -1,23 +1,33 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-tools/prepare-music.py —— 把本地音乐素材搬进仓库（可重复运行）
+tools/prepare-music.py —— 生成/更新音乐素材与播放列表（可重复运行）
+
+素材现在分两处：
+  · MP3：**已经搬到 Cloudflare R2**（桶 blog-music，公开地址见下面 R2_BASE），
+    仓库里不再存 mp3；要重新上传用
+        npx wrangler r2 object put blog-music/<id>.mp3 --file <本地mp3> --content-type audio/mpeg --remote
+  · 封面、歌词：仍在仓库里（static/music/covers、static/music/lyrics），
+    体积小、同源加载快，所以不搬到 R2。
 
 做四件事：
-  1. 把 6 个 MP3 复制到 static/music/，文件名改成 ASCII（id.mp3）
-  2. 自己解析 ID3v2 标签，把内嵌封面（APIC 帧里的 JPEG/PNG）提取到
-     static/music/covers/<id>.jpg —— 本机没有 ffmpeg / mutagen，所以手写解析
-  3. 把 3 个 LRC 复制到 static/music/lyrics/<id>.lrc，并解析出：
+  1. 需要时（--copy-mp3）才把源 MP3 复制进 static/music/；默认不复制
+     —— 仓库里不该再有 mp3（.gitignore 也已加上 static/music/*.mp3）
+  2. 从源 MP3 的 ID3v2 标签里提取内嵌封面到 static/music/covers/<id>.jpg
+     （本机没有 ffmpeg / mutagen，所以手写解析）
+  3. 把 LRC 复制到 static/music/lyrics/<id>.lrc，并解析出：
        · 制作信息（网易云 LRC 开头那些 JSON 行里的 作词 / 作曲 / 编曲）
        · 是否纯音乐（「纯音乐，请欣赏」占位行）
-  4. 生成 data/music.yaml（Hugo 的 data 文件，前端直接 site.Data.music 取用）
+  4. 生成 data/music.yaml：mp3 用 R2_BASE + 文件名，封面/歌词仍用本地路径
 
 用法：
-    <python> tools/prepare-music.py
+    <python> tools/prepare-music.py              # 常规：只更新封面/歌词/yaml
+    <python> tools/prepare-music.py --copy-mp3   # 额外把源 mp3 复制进仓库（一般不需要）
 
-注意：
-  · 音频不压缩、不转码，原样复制（共约 60 MB）
-  · 脚本只读源目录、只写 static/music/** 与 data/music.yaml
+安全性（重要）：
+  · 源 MP3 或 LRC 不在了也**不会**把 data/music.yaml 写坏：缺什么就沿用现有
+    yaml 里那一项的值（read_existing_yaml 兜底），file 永远指向 R2。
+  · 脚本只读源目录，只写 static/music/covers、static/music/lyrics 与 data/music.yaml。
 """
 
 import json
@@ -36,6 +46,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC_MUSIC = r"C:\Users\Administrator\Desktop\1音乐"
 # 歌词可能来自网易云目录，也可能直接躺在桌面音乐目录里（后加的两首就在那儿）
 LRC_DIRS = [r"D:\CloudMusic\VipSongsDownload", r"D:\CloudMusic", SRC_MUSIC]
+
+# MP3 的公开基址：Cloudflare R2 桶 blog-music 绑定的自定义域名。
+# 以后换域名/加前缀只改这一行；yaml 里的 file 都是它 + "<id>.mp3"。
+R2_BASE = "https://music.yunblog.com.cn"
+
+COPY_MP3 = "--copy-mp3" in sys.argv  # 默认不把 mp3 复制进仓库
 
 OUT_MUSIC = os.path.join(ROOT, "static", "music")
 OUT_COVERS = os.path.join(OUT_MUSIC, "covers")
@@ -269,45 +285,97 @@ def yq(s):
     return '"' + str(s).replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
+def read_existing_yaml(path):
+    """读现有 data/music.yaml 里每个 id 的字段，作为重新生成时的兜底。
+
+    为什么需要：mp3 已经搬到 R2，本机源目录哪天不在了，脚本也不能把已经正确的
+    配置写坏（例如把 lyrics 写成空、把 credits 丢掉）。缺什么就沿用这里的旧值。
+    """
+    keep = {}
+    if not os.path.exists(path):
+        return keep
+    cur = None
+    in_credits = False
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            m = re.match(r'^- id:\s*"?([^"\n]+?)"?\s*$', line)
+            if m:
+                cur = m.group(1)
+                keep[cur] = {"credits": []}
+                in_credits = False
+                continue
+            if cur is None:
+                continue
+            if re.match(r"^\s+credits:\s*$", line):
+                in_credits = True
+                continue
+            if in_credits:
+                if re.match(r"^\s+- ", line):
+                    keep[cur]["credits"].append(line.rstrip("\n"))
+                    continue
+                if re.match(r"^\s+credits:\s*\[\]\s*$", line):
+                    in_credits = False
+                    continue
+                in_credits = False
+            m = re.match(r"^\s+(title|artist|file|cover|lyrics|instrumental):\s*(.*)$", line)
+            if m:
+                keep[cur][m.group(1)] = m.group(2).strip().strip('"')
+    return keep
+
+
 def main():
     for d in (OUT_MUSIC, OUT_COVERS, OUT_LYRICS, os.path.dirname(OUT_DATA)):
         os.makedirs(d, exist_ok=True)
 
+    old = read_existing_yaml(OUT_DATA)
     rows, problems = [], []
     for t in TRACKS:
+        prev = old.get(t["id"], {})
         src = os.path.join(SRC_MUSIC, t["mp3"])
-        if not os.path.exists(src):
-            problems.append("缺少音频源文件: " + src)
-            continue
+        have_src = os.path.exists(src)
+        if not have_src:
+            problems.append("源 MP3 不在了（封面/标题/时长沿用现有配置，file 仍指向 R2）: " + src)
 
-        # 1) 复制音频（原样，不转码）
+        # 1) 音频：已经在 R2 上，默认不再往仓库里复制（--copy-mp3 才复制）
         dst_mp3 = os.path.join(OUT_MUSIC, t["id"] + ".mp3")
-        shutil.copy2(src, dst_mp3)
+        if have_src and COPY_MP3:
+            shutil.copy2(src, dst_mp3)
+        size = os.path.getsize(dst_mp3) if os.path.exists(dst_mp3) else 0
 
-        # 2) 提取封面 + 读 ID3 里的标题/歌手
-        cover_url = ""
-        info = extract_cover(src, os.path.join(OUT_COVERS, t["id"]))
-        if info:
-            w, h, nbytes, ext, major = info
-            cover_url = "/music/covers/%s%s" % (t["id"], ext)
-            cover_note = "%dx%d %s %d KB (ID3v2.%s)" % (w, h, ext, nbytes // 1024, major)
-        else:
-            cover_note = "无内嵌封面"
-            problems.append("没有找到内嵌封面: " + t["mp3"])
+        # 2) 封面 + 标题/歌手：源在就从 ID3 里读，源不在了沿用现有 yaml
+        cover_url, cover_note = "", "沿用现有封面"
+        title = artist = ""
+        if have_src:
+            info = extract_cover(src, os.path.join(OUT_COVERS, t["id"]))
+            if info:
+                w, h, nbytes, ext, major = info
+                cover_url = "/music/covers/%s%s" % (t["id"], ext)
+                cover_note = "%dx%d %s %d KB (ID3v2.%s)" % (w, h, ext, nbytes // 1024, major)
+            else:
+                cover_note = "无内嵌封面"
+                problems.append("没有找到内嵌封面: " + t["mp3"])
 
-        _major, frames = read_id3(src)
-        tag_title = _decode_text((frames.get("TIT2") or [b""])[0])
-        tag_artist = _decode_text((frames.get("TPE1") or [b""])[0])
-        base = os.path.splitext(t["mp3"])[0]
-        if " - " in base:
-            file_artist, file_title = base.split(" - ", 1)
-        else:
-            file_artist, file_title = "", base
-        title = tag_title or file_title
-        artist = tag_artist or file_artist
+            _major, frames = read_id3(src)
+            tag_title = _decode_text((frames.get("TIT2") or [b""])[0])
+            tag_artist = _decode_text((frames.get("TPE1") or [b""])[0])
+            base = os.path.splitext(t["mp3"])[0]
+            if " - " in base:
+                file_artist, file_title = base.split(" - ", 1)
+            else:
+                file_artist, file_title = "", base
+            title = tag_title or file_title
+            artist = tag_artist or file_artist
 
-        # 3) 复制 + 解析歌词
+        if not title:
+            title = prev.get("title") or t["id"]
+        if not artist:
+            artist = prev.get("artist") or ""
+        if not cover_url:
+            cover_url = prev.get("cover") or "/music/covers/%s.jpg" % t["id"]
+
+        # 3) 复制 + 解析歌词；缺源就沿用现有歌词路径与 credits（不写坏配置）
         lyrics_url, credits, n_lines, n_pairs, instrumental = "", [], 0, 0, False
+        got_lyrics = False
         if t["lrc"]:
             lrc_src = None
             for d in LRC_DIRS:
@@ -321,21 +389,31 @@ def main():
                 credits, lines, instrumental, lstats = parse_lrc(lrc_src)
                 credits = sort_credits(credits)
                 n_lines, n_pairs = lstats["lines"], lstats["pairs"]
+                got_lyrics = True
             else:
-                problems.append("缺少歌词源文件: " + t["lrc"])
+                problems.append("缺少歌词源文件（沿用现有歌词配置）: " + t["lrc"])
+
+        if not got_lyrics:
+            lyrics_url = prev.get("lyrics", "")
+            # credits 块整段沿用旧 yaml 的原文（不做二次解析，避免写坏）
+            credits_lines = prev.get("credits") or None
+            instrumental = prev.get("instrumental") == "true"
+        else:
+            credits_lines = None
 
         rows.append(dict(
             id=t["id"], title=title, artist=artist,
-            file="/music/%s.mp3" % t["id"], cover=cover_url, lyrics=lyrics_url,
-            instrumental=instrumental, credits=credits,
-            size=os.path.getsize(dst_mp3), cover_note=cover_note, n_lines=n_lines,
+            file="%s/%s.mp3" % (R2_BASE, t["id"]), cover=cover_url, lyrics=lyrics_url,
+            instrumental=instrumental, credits=credits, credits_lines=credits_lines,
+            size=size, cover_note=cover_note, n_lines=n_lines,
             n_pairs=n_pairs,
         ))
 
     # 4) 写 data/music.yaml
     out = [
         "# 播放列表 —— 由 tools/prepare-music.py 自动生成，请勿手改。",
-        "# 素材：6 首 MP3（static/music/）+ 封面（static/music/covers/）+ LRC（static/music/lyrics/）",
+        "# MP3 在 Cloudflare R2（桶 blog-music，公开基址见脚本里的 R2_BASE）；",
+        "# 封面 / 歌词仍在仓库里：static/music/covers/、static/music/lyrics/。",
         "# 字段：id / title / artist / file / cover / lyrics / instrumental / credits",
         "",
     ]
@@ -352,6 +430,9 @@ def main():
             for role, name in r["credits"]:
                 out.append("    - role: %s" % yq(role))
                 out.append("      name: %s" % yq(name))
+        elif r.get("credits_lines"):
+            out.append("  credits:")
+            out.extend(r["credits_lines"])
         else:
             out.append("  credits: []")
         out.append("")
@@ -363,15 +444,21 @@ def main():
     print("%-24s %-34s %-18s %s" % ("id", "title", "artist", "素材"))
     print("-" * 78)
     for r in rows:
-        print("%-24s %-34s %-18s mp3 %5.1f MB | %s | 歌词 %d 行（双语成对 %d）%s" % (
+        print("%-24s %-34s %-18s mp3 %s | %s | 歌词 %d 行（双语成对 %d）%s" % (
             r["id"], r["title"][:32], r["artist"][:16],
-            r["size"] / 1048576.0, r["cover_note"], r["n_lines"], r["n_pairs"],
+            ("%.1f MB（本地）" % (r["size"] / 1048576.0)) if r["size"] else "→ R2",
+            r["cover_note"], r["n_lines"], r["n_pairs"],
             " | 纯音乐" if r["instrumental"] else ""))
         if r["credits"]:
             print("%-24s   credits: %s" % ("", " / ".join("%s %s" % c for c in r["credits"])))
+        elif r.get("credits_lines"):
+            print("%-24s   credits（沿用现有）: %s" % ("", " ".join(
+                ln.strip().lstrip("- ").replace("role:", "").replace("name:", "").split()
+                for ln in r["credits_lines"])))
     print("-" * 78)
-    print("音频合计 %.1f MB；data/music.yaml 已写入" % (
-        sum(r["size"] for r in rows) / 1048576.0))
+    print("MP3 公开基址：%s" % R2_BASE)
+    print("仓库内 mp3：%s" % ("已按 --copy-mp3 复制" if COPY_MP3 else "不复制（mp3 已迁移到 R2）"))
+    print("data/music.yaml 已写入：%s" % OUT_DATA)
     if problems:
         print("\n⚠️  需要注意：")
         for p in problems:
