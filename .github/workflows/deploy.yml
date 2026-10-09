@@ -1,0 +1,63 @@
+name: Deploy to Cloudflare Workers
+
+# 什么时候跑：
+#   · push 到 main —— 以后写完文章直接推送，Actions 会自动构建并上线
+#   · 也可以在仓库 Actions 页面手动触发（workflow_dispatch）
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 只需要读仓库内容：部署凭据走 secrets，不需要 GitHub 的任何写权限
+permissions:
+  contents: read
+
+# 同一时间只跑一个部署，避免两次推送同时上传静态资源打架；
+# cancel-in-progress: false 表示不打断正在进行的部署，让排队的任务等它跑完。
+concurrency:
+  group: deploy-cloudflare-workers
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build Hugo & Deploy to Cloudflare
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) 拉代码。
+      #    主题 themes/PaperMod 是 git submodule（不是 npm 依赖），不写
+      #    submodules: recursive 的话 themes/ 里是空目录，Hugo 一定构建失败。
+      #    fetch-depth: 0 拉完整提交历史，PaperMod 用它计算 .Lastmod / .GitInfo。
+      - name: 拉取仓库（含子模块）
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      # 2) 安装 Hugo。
+      #    必须是 extended 版本（主题的 SCSS / 图片处理需要），版本与本地一致：
+      #    0.167.0（项目要求 >= 0.158，因为 hugo.toml 用了 locale）。
+      - name: 安装 Hugo extended
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: '0.167.0'
+          extended: true
+
+      # 3) 构建站点。
+      #    产物输出到 ./public —— 正好是 wrangler.toml 里 [assets] directory 指定的目录。
+      #    --minify 压缩 HTML/CSS/JS，--gc 顺手清理无用缓存。
+      - name: 构建站点
+        run: hugo --minify --gc
+
+      # 4) 部署到 Cloudflare Workers（worker 名 my-blog，配置见仓库根的 wrangler.toml）。
+      #    · CLOUDFLARE_API_TOKEN 从仓库 secrets 读取，需要先在
+      #      Settings → Secrets and variables → Actions → New repository secret
+      #      里添加，名字必须叫 CLOUDFLARE_API_TOKEN；
+      #      权限至少给 Workers Scripts: Edit（建议再加 Account Settings: Read）。
+      #    · CLOUDFLARE_ACCOUNT_ID 不是敏感信息，直接写死，省得再配一个 secret。
+      - name: 部署到 Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: f1788a61e7a94f861c6df693513f68d1
+          command: deploy
