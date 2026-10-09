@@ -59,3 +59,8 @@
 <link rel="preconnect" href="{{ $mu.Scheme }}://{{ $mu.Host }}" crossorigin>
 {{- end -}}
 {{- end -}}
+{{- /* Bing Webmaster Tools（必应站长平台）的网站验证标记 —— 固定值，**永久保留**。
+       Bing 的说明是「要保存已验证状态，请勿移除」：删掉这行已验证状态就失效，
+       以后加别的站长工具标记时也别顺手把它删了。这里写死字面量，
+       不走 jsonify 之类的管道（那会把引号转义成 &#34;，标记就废了）。 */ -}}
+<meta name="msvalidate.01" content="F72BCE35C3446DC01EF6310E7BDF26BF" />
