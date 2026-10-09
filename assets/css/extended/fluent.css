@@ -2027,3 +2027,97 @@ body.fc-has-player .fc-mini {
         animation: none !important;
     }
 }
+
+/* ------------------- 13. 樱花飘落（氛围层）与左下角开关 */
+/* canvas 和按钮都由 assets/js/sakura.js 创建 —— 开启「减少动效」时脚本直接返回，
+   两者根本不会被创建（这里的 display:none 只是兜底）。
+   canvas 的 z-index = 55：高于页头(50)与卡片内容，低于右下角迷你播放条(60)，
+   所以花瓣不会盖住播放控件。 */
+.fc-sakura {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.fc-sakura-toggle {
+    position: fixed;
+    left: 20px;
+    bottom: 20px;
+    z-index: 61;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 1px solid var(--fc-glass-stroke);
+    border-radius: 50%;
+    background: var(--fc-glass-bg);
+    -webkit-backdrop-filter: var(--fc-blur);
+    backdrop-filter: var(--fc-blur);
+    color: #e2819d;
+    opacity: 0.42;
+    cursor: pointer;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+[data-theme="dark"] .fc-sakura-toggle {
+    color: #f7b8c9;
+}
+
+.fc-sakura-toggle:hover,
+.fc-sakura-toggle:focus-visible {
+    opacity: 1;
+    transform: translateY(-2px);
+}
+
+.fc-sakura-toggle svg {
+    width: 19px;
+    height: 19px;
+}
+
+/* 关闭状态：更淡 + 一道斜杠 */
+.fc-sakura-toggle.is-off {
+    color: var(--secondary);
+    opacity: 0.3;
+}
+
+.fc-sakura-toggle.is-off::after {
+    content: "";
+    position: absolute;
+    width: 22px;
+    height: 1.6px;
+    border-radius: 2px;
+    background: currentColor;
+    transform: rotate(-45deg);
+}
+
+/* 手机上小一号；迷你播放条贴底通栏时（body.fc-has-mini）往上让一让 */
+@media screen and (max-width: 768px) {
+    .fc-sakura-toggle {
+        left: 12px;
+        bottom: 12px;
+        width: 32px;
+        height: 32px;
+    }
+
+    .fc-sakura-toggle svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    body.fc-has-mini .fc-sakura-toggle {
+        bottom: calc(12px + 60px);
+    }
+}
+
+/* 兜底：脚本在减少动效时不会创建这两个元素，这里再挡一层 */
+@media (prefers-reduced-motion: reduce) {
+
+    .fc-sakura,
+    .fc-sakura-toggle {
+        display: none !important;
+    }
+}

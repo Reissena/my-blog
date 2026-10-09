@@ -60,4 +60,8 @@
 <script defer src="{{ $player.RelPermalink }}" integrity="{{ $player.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- $pjax := resources.Get "js/pjax.js" | resources.Minify | resources.Fingerprint -}}
 <script defer src="{{ $pjax.RelPermalink }}" integrity="{{ $pjax.Data.Integrity }}" crossorigin="anonymous"></script>
+{{- /* 樱花飘落：canvas 与左下角开关都由这个脚本创建（挂在 body 上，pjax 不会碰），
+       开启「减少动效」时脚本直接返回，连 canvas 都不创建 */ -}}
+{{- $sakura := resources.Get "js/sakura.js" | resources.Minify | resources.Fingerprint -}}
+<script defer src="{{ $sakura.RelPermalink }}" integrity="{{ $sakura.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- end -}}
