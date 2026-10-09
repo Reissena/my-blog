@@ -183,3 +183,16 @@
 </div>
 {{- $clarityjs := resources.Get "js/bg-clarity.js" | resources.Minify | resources.Fingerprint -}}
 <script defer src="{{ $clarityjs.RelPermalink }}" integrity="{{ $clarityjs.Data.Integrity }}" crossorigin="anonymous"></script>
+
+{{- /* =====================================================================
+     顶部导航的「滑轨」：手机窄屏 7 项放不下时横滑，而不是换行。
+     · CSS 负责「能滑 + 两端渐隐的外观」（fluent.css 第 9 节响应式里）；
+       这个脚本负责 CSS 做不到的三件事：溢出时才显示渐隐、当前项滚进视野、
+       键盘 Tab 到看不见的项时带余量地拉进来。
+     · 切页后自动定位靠 MutationObserver 盯 #menu 的 active / aria-current ——
+       pjax 只换 main.main（导航不被替换），但会改写这些 class，
+       所以不用动 pjax 核心逻辑就能拿到「切页完成」的通知。
+     · 桌面端宽度富余，脚本判定「滑不动」后什么都不做。
+     ===================================================================== */ -}}
+{{- $navjs := resources.Get "js/nav-rail.js" | resources.Minify | resources.Fingerprint -}}
+<script defer src="{{ $navjs.RelPermalink }}" integrity="{{ $navjs.Data.Integrity }}" crossorigin="anonymous"></script>

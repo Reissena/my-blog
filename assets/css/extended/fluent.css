@@ -243,6 +243,14 @@ body::after {
 }
 
 /* Segmented 控件：一个圆角胶囊容器里装若干分段，选中项有圆角高亮底 */
+/* 外面这层只负责「定位」：左右渐隐提示是它的伪元素。
+   渐隐不能挂在 .fc-segmented 自己身上 —— 它是滚动容器，绝对定位的伪元素
+   会跟着内容一起滚走，滑两下提示就跑没影了。 */
+.fc-nav-rail {
+    display: flex;
+    min-width: 0;
+}
+
 .fc-segmented {
     display: flex;
     align-items: center;
@@ -1375,38 +1383,103 @@ a.fc-pager-link:hover {
         flex: 1 1 auto;
     }
 
-    /* 手机上导航整行换行显示。原来是 nowrap + overflow-x:auto 的横向滚动，
-       窄屏（如 400px）装不下时最后一项会被截成半截字（「搜索」只剩「搜」）；
-       改成换行后一项都不会被截断，也不产生页面横向滚动条。
-       同时把每项高度提到 40px，保证触摸目标够大。 */
-    .fc-segmented {
+    /* 手机上导航整行、**换行彻底取消**，改成「放不下就横滑」的滑轨。
+       注意这里**没有**写「到某个宽度才切成滑轨」的断点 —— 内容放得下时
+       scrollWidth 恒等于 clientWidth，既滑不动、也不会有渐隐，
+       所以宽一点的小屏上它跟以前那条分段控件长得一模一样；
+       只有真的溢出（实测 ≤407px）才表现为滑轨。这就是渐进增强。 */
+    .fc-nav-rail {
         order: 3;
-        /* 独占一整行：flex-basis 100% + 不收缩，避免被左侧站名挤窄后
-           同一个胶囊里又折行、看起来更挤 */
+        /* 独占一整行：flex-basis 100% + 不收缩，避免被左侧站名挤窄 */
         flex: 1 0 100%;
         width: 100%;
-        flex-wrap: wrap;
-        overflow-x: visible;
-        row-gap: 4px;
+        /* 渐隐薄片的定位参照（只在手机断点里加，桌面端连 position 都不动） */
+        position: relative;
     }
 
-    /* 内边距只留在 span 上：原来 a 和 span 各带一份 padding，每项会宽到 75px。
-       收成一份后每项 = 字号×2 + 左右内边距。导航从 6 项变 7 项（多了「技能」）后，
-       13.5px / 0 12px 每项 51px，7 项要 369px，而 390px 屏上胶囊只给得出 352px，
-       flex-wrap 会把「搜索」单独挤到第二行（6+1，很难看）。
-       所以窄屏把字号收到 13px、左右内边距收到 9px，每项 44px ——
-       7 项 320px，390px 屏放得下，连 360px 的老安卓也放得下，一项都不会被截断。
-       高度仍然 40px，触摸目标够大。 */
+    /* 横向滚动**只在这个容器内部**（body 不会被撑出横向滚动条） */
+    .fc-segmented {
+        flex: 1 1 auto;
+        min-width: 0;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        row-gap: 0;
+        overscroll-behavior-x: contain;      /* 滑到头别把整个页面带着横滑 */
+        -webkit-overflow-scrolling: touch;   /* iOS 上保留惯性滚动 */
+        scrollbar-width: none;               /* 滚动条藏起来，但照样能滑 */
+    }
+
+    .fc-segmented::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* 能滑的时候给个「可以抓」的光标（鼠标用户；手机上不显示光标无所谓） */
+    .fc-nav-rail.is-scrollable .fc-segmented {
+        cursor: grab;
+    }
+
+    .fc-nav-rail.is-scrollable .fc-segmented.is-dragging {
+        cursor: grabbing;
+    }
+
+    /* 触摸目标不缩水：44px 高（比原来的 40px 还大一点），每项 51px 宽。
+       有滑轨兜底之后就不必再为了「一行塞下 7 项」把字号和内边距压到 13px / 9px 了。 */
     .fc-segmented a {
-        height: 40px;
+        height: 44px;
         padding: 0;
-        font-size: 13px;
+        font-size: 13.5px;
     }
 
     .fc-segmented a span {
-        height: 40px;
-        padding: 0 9px;
-        font-size: 13px;
+        height: 44px;
+        padding: 0 12px;
+        font-size: 13.5px;
+    }
+
+    /* 左右边缘渐隐提示：不弄这个，访客根本不知道右边还有东西可以滑。
+       做法是两张「与胶囊同底色 + 同模糊」的薄片盖在两端，再用 mask 做渐隐 ——
+       底色和模糊都跟容器一致，所以深浅色、任意背景图下都对得上，
+       也不会像纯色渐变那样在某些背景上显出突兀的色带。
+       薄片上下内缩 3px（= 容器 padding），胶囊自己的描边不会被糊掉；
+       pointer-events: none，不会挡点击。只有 JS 打上 .is-scrollable 时才显示，
+       且已经滑到某一端时那一侧收起。 */
+    .fc-nav-rail::before,
+    .fc-nav-rail::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        bottom: 3px;
+        width: 32px;
+        z-index: 2;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.18s ease;
+        background: rgba(255, 255, 255, 0.50);
+        -webkit-backdrop-filter: var(--fc-blur);
+        backdrop-filter: var(--fc-blur);
+    }
+
+    .fc-nav-rail::before {
+        left: 3px;
+        -webkit-mask-image: linear-gradient(to right, #000, transparent);
+        mask-image: linear-gradient(to right, #000, transparent);
+    }
+
+    .fc-nav-rail::after {
+        right: 3px;
+        -webkit-mask-image: linear-gradient(to left, #000, transparent);
+        mask-image: linear-gradient(to left, #000, transparent);
+    }
+
+    [data-theme="dark"] .fc-nav-rail::before,
+    [data-theme="dark"] .fc-nav-rail::after {
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    /* 左边滑到头就不提示左边，右边同理 */
+    .fc-nav-rail.is-scrollable:not(.at-start)::before,
+    .fc-nav-rail.is-scrollable:not(.at-end)::after {
+        opacity: 1;
     }
 
     .fc-brand-text {

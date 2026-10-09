@@ -19,20 +19,26 @@
             </a>
         </div>
 
-        <ul id="menu" class="menu fc-segmented">
-            {{- range site.Menus.main }}
-            {{- $url := .URL | absLangURL }}
-            {{- $isSearch := eq .Identifier "search" }}
-            {{- $active := cond (eq .URL "/") (eq $cur $url) (hasPrefix $cur $url) }}
-            <li>
-                <a href="{{ $url }}" title="{{ .Title | default .Name }}"
-                    {{- if $isSearch }} accesskey="/"{{ end }}
-                    {{- if $active }} class="active" aria-current="page"{{ end }}>
-                    <span>{{ .Pre }}{{ .Name }}{{ .Post }}</span>
-                </a>
-            </li>
-            {{- end }}
-        </ul>
+        {{- /* 手机上导航放不下时变成横向滑轨：.fc-nav-rail 是滚动容器外面的定位层
+               （左右渐隐提示挂在它身上 —— 挂在滚动容器自己身上的话，绝对定位的伪元素
+               会跟着内容一起滚走），里面 #menu 才是真正横向滚动的那个。
+               桌面端这层只是个普通的 flex 盒子，布局与以前完全一致。 */ -}}
+        <div class="fc-nav-rail" id="fc-nav-rail">
+            <ul id="menu" class="menu fc-segmented">
+                {{- range site.Menus.main }}
+                {{- $url := .URL | absLangURL }}
+                {{- $isSearch := eq .Identifier "search" }}
+                {{- $active := cond (eq .URL "/") (eq $cur $url) (hasPrefix $cur $url) }}
+                <li>
+                    <a href="{{ $url }}" title="{{ .Title | default .Name }}"
+                        {{- if $isSearch }} accesskey="/"{{ end }}
+                        {{- if $active }} class="active" aria-current="page"{{ end }}>
+                        <span>{{ .Pre }}{{ .Name }}{{ .Post }}</span>
+                    </a>
+                </li>
+                {{- end }}
+            </ul>
+        </div>
 
         <div class="logo-switches">
             {{- if (not site.Params.disableThemeToggle) }}
