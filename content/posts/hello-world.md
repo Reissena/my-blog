@@ -1,15 +1,15 @@
 ---
-title: "你好，世界"
+title: 你好，世界
 date: 2026-09-30
 draft: false
-tags: ["Hugo", "PaperMod", "开始"]
-categories: ["随笔"]
-summary: "博客的第一篇文章：记录这个站点是怎么搭起来的。"
+tags:
+  - Hugo
+  - PaperMod
+  - 开始
+summary: 博客的第一篇文章：记录这个站点是怎么搭起来的。
 cover:
-  image: "/images/posts/hello-world.jpg"
-  alt: "蓝色渐变底 + 几何图形与 HELLO WORLD 字样的封面图"
+  image: /images/564834513b3f14775fb6dd896591c782.jpg
 ---
-
 欢迎来到我的个人博客！这是第一篇文章，用来验证 Hugo + PaperMod 的构建和渲染是否正常。
 
 ## 这个站点是怎么搭起来的
@@ -33,9 +33,10 @@ func main() {
 
 ## 接下来
 
-- [x] 初始化站点
-- [x] 配置中文界面
-- [ ] 写第二篇文章
-- [ ] 绑定自定义域名
+- 初始化站点
+- 配置中文界面
+- 写第二篇文章
+- 绑定自定义域名
 
 > 提示：编辑 `content/posts/` 下的 Markdown 文件即可发布新文章，推送后 Cloudflare Pages 会自动重新部署。
+
