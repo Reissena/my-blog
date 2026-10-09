@@ -1,0 +1,92 @@
+# ============================================================================
+# Pages CMS 配置（https://pagescms.org）
+# ----------------------------------------------------------------------------
+# 作用：在网页后台里写文章、传图片，保存即提交到 GitHub 仓库，构建平台自动重新发布。
+# 使用前提见 CMS-SETUP.md（需要先把仓库推到 GitHub，再安装 Pages CMS 的 GitHub App）。
+#
+# 语法要点（踩坑记录）：
+#   · 字段类型里**没有** `list` 这种 type；要让某个字段可重复，是给它加
+#     `list: true` 这个「属性」，例如 tags。
+#   · 正文用 `type: rich-text` 且字段名必须是 `body`（Pages CMS 的保留名，
+#     它对应 front matter 下面那段正文）。
+#   · Hugo 用 YAML front matter（`---` 包起来），所以 format 写 yaml-frontmatter。
+# ============================================================================
+
+media:
+  - name: images
+    label: 图片
+    # 上传的图片落到 Hugo 的 static/images/，于是公开路径就是 /images/xxx.jpg
+    # （static/ 下的文件会被 Hugo 原样复制到 public/）
+    input: static/images
+    output: /images
+    extensions: [jpg, jpeg, png, webp, gif, avif, svg]
+    rename: safe
+
+content:
+  - name: posts
+    label: 文章
+    type: collection
+    path: content/posts
+    format: yaml-frontmatter
+    # 新文章的文件名：2026-10-09-我的新标题.md（标题会被转成安全的 slug）
+    filename: "{year}-{month}-{day}-{fields.title}.md"
+    media: images
+    view:
+      fields: [title, date, draft, tags]
+      primary: title
+      default:
+        sort: date
+        order: desc
+    fields:
+      - name: title
+        label: 标题
+        type: string
+        required: true
+        options:
+          maxlength: 120
+
+      - name: date
+        label: 日期
+        type: date
+        required: true
+
+      - name: draft
+        label: 草稿（勾选后不会发布到线上）
+        type: boolean
+        default: false
+
+      - name: tags
+        label: 标签（可加多个）
+        type: string
+        list: true
+        required: false
+
+      - name: summary
+        label: 摘要（列表卡片上显示的一两句话）
+        type: text
+        required: false
+        options:
+          maxlength: 300
+
+      # PaperMod 的封面写法是嵌套的 cover.image / cover.alt，
+      # 所以这里用 object 字段（图片 + 描述 + 图注），写出来的 front matter 才能被主题认出来。
+      - name: cover
+        label: 封面图（可选）
+        type: object
+        required: false
+        fields:
+          - name: image
+            label: 图片
+            type: image
+          - name: alt
+            label: 图片描述（无障碍 / SEO）
+            type: string
+          - name: caption
+            label: 图注
+            type: string
+
+      - name: body
+        label: 正文
+        type: rich-text
+        options:
+          media: images

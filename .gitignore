@@ -15,3 +15,6 @@ Thumbs.db
 
 # Hugo cache
 .hugo_cache/
+
+# Wrangler local cache (机器相关，不要提交)
+.wrangler/

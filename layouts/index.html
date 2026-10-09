@@ -1,0 +1,60 @@
+{{- /* =====================================================================
+    首页 —— 「个人主页」式两栏布局：左侧作者信息卡 + 文章卡片列表，右侧侧栏
+    ---------------------------------------------------------------------
+    · 放在项目 layouts/ 下即可覆盖主题（Hugo 渲染首页时优先用 layouts/index.html，
+      主题的 layouts/list.html 因此不再作用于首页），themes/PaperMod 保持原样。
+    · 两栏骨架见 fluent.css 的 .fc-layout；窄屏（≤1024px）自动退化成单列，
+      顺序变成：个人信息卡 → 文章列表 → 最新文章卡。
+    · 刻意不含任何登录 / 注册 / 会员 / 评论 / 统计之类的互动元素。
+   ===================================================================== */ -}}
+{{- define "main" }}
+
+{{- $posts := where site.RegularPages "Type" "in" site.Params.mainSections }}
+{{- $paginator := .Paginate $posts }}
+
+<div class="fc-layout">
+    {{- partial "site_nav.html" . }}
+    <div class="fc-main-col">
+
+        <section class="fc-hero fc-glass">
+            {{- partial "avatar.html" (dict "class" "fc-avatar" "size" 76) }}
+            <div class="fc-hero-body">
+                <h1 class="fc-hero-title">
+                    {{- with site.Params.homeInfoParams }}{{ .Title | markdownify }}{{ else }}{{ site.Title }}{{ end -}}
+                </h1>
+                <div class="fc-hero-desc">
+                    {{- with site.Params.homeInfoParams -}}
+                        {{ .Content | $.Page.RenderString (dict "display" "block") }}
+                    {{- else -}}
+                        {{ site.Params.description }}
+                    {{- end -}}
+                </div>
+                <div class="fc-hero-meta">
+                    <span class="fc-chip">{{ len $posts }} 篇文章</span>
+                    {{- with site.Params.socialIcons -}}
+                    {{ partial "social_icons.html" (dict "align" "left") }}
+                    {{- end -}}
+                </div>
+            </div>
+        </section>
+
+        {{- with $paginator.Pages }}
+        <section class="fc-section">
+            <h2 class="fc-section-title">最新文章</h2>
+            <div class="fc-cards">
+                {{- range . }}{{ partial "fluent_card.html" . }}{{ end }}
+            </div>
+        </section>
+        {{- end }}
+
+        {{- partial "fluent_pager.html" $paginator }}
+
+    </div>
+
+    <aside class="fc-sidebar" aria-label="侧栏">
+        {{- partial "side_profile.html" . }}
+        {{- partial "side_latest.html" . }}
+    </aside>
+</div>
+
+{{- end }}{{/* end main */ -}}

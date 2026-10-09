@@ -10,10 +10,11 @@
  *   node tools/hash-password.mjs '我的密码'                # 直接给密码（会进 shell 历史，慎用）
  *   node tools/hash-password.mjs --user member --display-name 会员读者
  *   node tools/hash-password.mjs --iterations 200000
+ *   node tools/hash-password.mjs --user friend --role member --generate   # 随机生成强密码
  *   node tools/hash-password.mjs --selftest               # 校验 assets/js/auth.js 的纯 JS 实现
- *   node tools/hash-password.mjs --check member papermod123  # 用 hugo.toml 里的盐/哈希验证口令
+ *   node tools/hash-password.mjs --check member '你的口令'   # 用配置里的盐/哈希验证口令
  *
- * 输出是一段可以直接粘进 hugo.toml 的 TOML：
+ * 输出的 TOML 片段直接追加到 hugo.toml 里（可以有任意多个账号）：
  *
  *   [[params.auth.users]]
  *     username = "member"
@@ -24,7 +25,7 @@
  * 在浏览器里「退出登录」，或把 localStorage 里的 pmauth.session 删掉）。
  */
 
-import { pbkdf2Sync, randomBytes, timingSafeEqual } from "node:crypto";
+import { pbkdf2Sync, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -38,8 +39,29 @@ const DEFAULTS = {
     iterations: 150000, // 与 assets/js/auth.js 的兜底值保持一致
     dkLen: 32,          // SHA-256 输出 32 字节
     user: "member",
-    displayName: "会员读者"
+    displayName: "会员读者",
+    role: "member"
 };
+
+/* -------------------------------------------------------- 随机强密码生成 */
+
+// 刻意避开容易混淆的 O/0、l/1/I，以及会跟 shell / TOML 打架的 " \ $ ` #
+const PW_LOWER = "abcdefghijkmnpqrstuvwxyz";
+const PW_UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+const PW_DIGIT = "23456789";
+const PW_SYMBOL = "!@*-_=+?";
+
+function generatePassword(len = 16) {
+    const all = PW_LOWER + PW_UPPER + PW_DIGIT + PW_SYMBOL;
+    const pick = (set) => set[randomInt(set.length)];
+    const chars = [pick(PW_LOWER), pick(PW_UPPER), pick(PW_DIGIT), pick(PW_SYMBOL)];
+    while (chars.length < len) chars.push(pick(all));
+    for (let i = chars.length - 1; i > 0; i--) {   // Fisher–Yates
+        const j = randomInt(i + 1);
+        [chars[i], chars[j]] = [chars[j], chars[i]];
+    }
+    return chars.join("");
+}
 
 /* ------------------------------------------------------------------ 参数 */
 
@@ -51,6 +73,8 @@ function parseArgs(argv) {
         else if (a === "--check") out.flags.check = true;
         else if (a === "--help" || a === "-h") out.flags.help = true;
         else if (a === "--user") out.flags.user = argv[++i];
+        else if (a === "--role") out.flags.role = argv[++i];
+        else if (a === "--generate") out.flags.generate = true;
         else if (a === "--display-name") out.flags.displayName = argv[++i];
         else if (a === "--iterations") out.flags.iterations = parseInt(argv[++i], 10);
         else if (a === "--salt") out.flags.salt = argv[++i];
@@ -83,7 +107,7 @@ function loadPureJsPbkdf2() {
 function selftest() {
     const jsImpl = loadPureJsPbkdf2();
     const cases = [
-        { pw: "papermod123", salt: "a1b2c3d4e5f60718293a4b5c6d7e8f90", iters: 1000 },
+        { pw: "selftest-vector-1", salt: "a1b2c3d4e5f60718293a4b5c6d7e8f90", iters: 1000 },
         { pw: "密码里有中文🔒", salt: "00112233445566778899aabbccddeeff", iters: 2000 },
         { pw: "", salt: "ffffffffffffffffffffffffffffffff", iters: 10 },
         { pw: "p@ss word with spaces", salt: "0123456789abcdef0123456789abcdef", iters: 5000 }
@@ -126,6 +150,7 @@ function readUsersFromToml() {
         return {
             username: val("username"),
             displayName: val("displayName"),
+            role: val("role") || "member",
             salt: val("salt"),
             hash: val("hash"),
             iterations: parseInt(val("iterations"), 10) || DEFAULTS.iterations
@@ -142,7 +167,7 @@ function check(username, password) {
     }
     const hex = loadPureJsPbkdf2()(password, user.salt, user.iterations, DEFAULTS.dkLen);
     const ok = hex === user.hash.toLowerCase();
-    console.log(`${ok ? "✅" : "❌"} ${user.username}${user.displayName ? `（${user.displayName}）` : ""} 口令${ok ? "匹配" : "不匹配"}`);
+    console.log(`${ok ? "✅" : "❌"} ${user.username}（${user.displayName || "-"}，role=${user.role}）口令${ok ? "匹配" : "不匹配"}`);
     if (!ok) {
         console.log(`   期望：${user.hash}\n   实际：${hex}`);
         process.exit(1);
@@ -206,7 +231,7 @@ async function main() {
         const [user, ...rest] = args.positional;
         if (!user) {
             const users = readUsersFromToml();
-            console.log(`hugo.toml 里的账号：\n${users.map((u) => `  - ${u.username}（${u.displayName || "-"}）`).join("\n") || "  （无）"}`);
+            console.log(`hugo.toml 里的账号：\n${users.map((u) => `  - ${u.username}（${u.displayName || "-"}，role=${u.role}）`).join("\n") || "  （无）"}`);
             console.log("\n用法：node tools/hash-password.mjs --check <用户名> <密码>");
             return;
         }
@@ -214,9 +239,9 @@ async function main() {
         return check(user, password);
     }
 
-    const password = args.positional.length
+    let password = args.positional.length
         ? args.positional.join(" ")
-        : await askHidden("请输入新密码（不回显，回车确认）：");
+        : (args.flags.generate ? generatePassword(16) : await askHidden("请输入新密码（不回显，回车确认）："));
 
     if (!password) {
         console.error("密码不能为空。");
@@ -237,6 +262,7 @@ async function main() {
 
     const username = args.flags.user || DEFAULTS.user;
     const displayName = args.flags.displayName || DEFAULTS.displayName;
+    const role = args.flags.role || DEFAULTS.role;
 
     // 自校验：确保刚算出来的值和浏览器里算的完全一致
     const jsHex = loadPureJsPbkdf2()(password, salt, iterations, DEFAULTS.dkLen);
@@ -248,17 +274,19 @@ async function main() {
 
     console.log(`
 ============================================================
-把下面这段粘到 hugo.toml 的 [params.auth] 段落后面（可多账号）：
+把下面这段追加到 hugo.toml（可以有任意多个账号）：
 
 [[params.auth.users]]
   username = "${username}"
   displayName = "${displayName}"
+  role = "${role}"
   salt = "${salt}"
   hash = "${hash}"
   iterations = ${iterations}
 ============================================================
-算法：PBKDF2-HMAC-SHA256 / ${iterations} 次迭代 / 16 字节随机盐 / 32 字节输出
+${args.flags.generate ? `本次随机生成的口令（请立刻转告本人，脚本不再保存）：\n\n    ${password}\n` : ""}算法：PBKDF2-HMAC-SHA256 / ${iterations} 次迭代 / 16 字节随机盐 / 32 字节输出
 （已验证与 assets/js/auth.js 的浏览器端实现结果一致 ✅）
+口令核对命令：node tools/hash-password.mjs --check ${username} '${password}'
 
 提醒：
   1. TOML 里放的是哈希，不是明文；但这个哈希对任何访客都是公开的，

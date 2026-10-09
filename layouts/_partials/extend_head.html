@@ -1,85 +1,29 @@
 {{- /* =====================================================================
-    覆盖主题的 layouts/_partials/extend_head.html（PaperMod 预留的扩展点）
-    作用：注入登录模块的引导配置、页面门禁、以及 assets/js/auth.js
-    说明：项目 layouts/ 里的同名 partial 会覆盖 themes/PaperMod 里的版本，
-          所以主题源码不需要（也不应该）改动。
+    覆盖主题的 layouts/_partials/extend_head.html（PaperMod 预留的扩展点，
+    主题原版是空文件，删掉这个覆盖也能正常构建，只是没有背景图）。
 
-    注意（踩过的坑）：Hugo 对 <script> 里的插值会做 JS 上下文转义，
-    所以这里直接输出原始值（Hugo 会自动补上引号与转义），
-    不要用 `| jsonify`——那会被再转义一层，变成 "\"/\""。
-    口令哈希那块用的是 <script type="text/plain">，那是文本上下文，
-    jsonify 的输出才是原样的 JSON，由 auth.js 取出来 JSON.parse。
+    只做一件事：把整页背景图交给 Hugo 的资源管线处理。
+      · 图片源文件放在 assets/images/background.jpg（不入 static/，可被管线加工）
+      · 调用 .RelPermalink 会让 Hugo 把它发布到 /images/background.jpg
+      · 注入成 CSS 变量 --bg-image，具体样式见 assets/css/extended/fluent.css
+
+    为什么写在 <head> 的内联样式里而不是写死在 css 里：
+    CSS 里的 url() 是相对「样式表所在位置」解析的，而 Hugo 会把样式表打包成
+    /assets/css/stylesheet.<hash>.css；写成内联样式则相对「当前文档」解析，
+    生产构建（根路径）与预览构建设置 relativeURLs = true（见 preview.toml）都对。
    ===================================================================== */ -}}
-{{- $auth := site.Params.auth -}}
-{{- $authOn := and $auth (ne $auth.enabled false) -}}
-{{- if $authOn -}}
-{{- $loginPath := $auth.loginPath | default "login/" -}}
-{{- $membersPath := $auth.membersPath | default "private/" -}}
-{{- /* 哪些页面需要登录：front matter 里写了 private: true，或位于 private 栏目 */ -}}
-{{- $gated := or (.Param "private") (eq .Section "private") (eq .Layout "private") -}}
-
-{{- /* 相对路径前缀：当前页 → 站点根。例如 / 是 ""，/private/ 是 "../"，
-       /private/foo/ 是 "../../"。用相对路径能同时兼容：
-       本地 hugo server（含换 IP/端口）、线上域名、baseURL 带子路径
-       （GitHub Pages 项目站点）、以及反向代理挂在某个前缀下的情况。 */ -}}
-{{- $rel := strings.TrimSuffix "/" (strings.TrimPrefix "/" .RelPermalink) -}}
-{{- $depth := 0 -}}
-{{- if $rel -}}{{- $depth = len (split $rel "/") -}}{{- end -}}
-{{- $prefix := strings.Repeat $depth "../" -}}
-
-{{- /* 1) 引导配置 */}}
-<script>
-    window.__AUTH__ = {
-        base: {{ site.Home.RelPermalink }},
-        loginPath: {{ $loginPath }},
-        membersPath: {{ $membersPath }},
-        loginRel: {{ printf "%s%s" $prefix $loginPath }},
-        membersRel: {{ printf "%s%s" $prefix $membersPath }},
-        homeRel: {{ $prefix | default "./" }},
-        sessionHours: {{ $auth.sessionHours | default 12 }},
-        rememberDays: {{ $auth.rememberDays | default 30 }},
-        maxAttempts: {{ $auth.maxAttempts | default 5 }},
-        cooldownMs: {{ $auth.cooldownMs | default 5000 }},
-        gated: {{ $gated }}
-    };
-</script>
-
-{{- /* 2) 页面门禁：同步执行，未登录时立刻跳 /login/?redirect=当前页，
-       不会让受保护内容先闪一下。注意：它挡得住普通访客，
-       挡不住「查看网页源代码」的人 —— 原因见 DEPLOY.md。 */}}
-{{- if $gated }}
-<script>
-    (function () {
-        var A = window.__AUTH__;
-        var s = null;
-        try {
-            s = JSON.parse(sessionStorage.getItem("pmauth.session.tmp") ||
-                localStorage.getItem("pmauth.session") || "null");
-        } catch (e) { s = null; }
-        if (s && s.exp && s.exp > Date.now()) {
-            document.documentElement.classList.add("auth-on");
-            return;
-        }
-        try {
-            localStorage.removeItem("pmauth.session");
-            sessionStorage.removeItem("pmauth.session.tmp");
-        } catch (e) { /* ignore */ }
-        var back = location.pathname + location.search + location.hash;
-        /* 用相对地址：浏览器会基于当前页 URL 解析，缩进/前缀托管都不会出错 */
-        location.replace(A.loginRel + "?redirect=" + encodeURIComponent(back));
-    })();
-</script>
-{{- end }}
-
-{{- /* 3) 登录模块逻辑：PBKDF2 校验 / 页头登录态 / 表单交互 */}}
-{{- $authjs := resources.Get "js/auth.js" | resources.Minify | resources.Fingerprint -}}
-<script defer src="{{ $authjs.RelPermalink }}" integrity="{{ $authjs.Data.Integrity }}" crossorigin="anonymous"></script>
-
-{{- /* 4) 口令哈希只在 /login/ 页下发，其它页面拿不到（减少不必要的暴露）。
-       必须用 type="text/plain"：这是文本上下文，jsonify 的结果才是原样 JSON。 */}}
-{{- if eq .Layout "login" }}
-<script type="text/plain" id="auth-config">{{ $auth | jsonify }}</script>
-{{- end }}
+{{- with resources.Get "images/background.jpg" -}}
+{{- /* 同时兼容两种构建：生产构建（根路径 /images/…）与预览构建
+       （preview.toml 里 relativeURLs = true，页面会挂在子路径下）。
+       用 site.Home.RelPermalink 当前缀，两种模式下都能解析到正确位置。 */ -}}
+{{- $url := printf "%s%s" site.Home.RelPermalink (strings.TrimPrefix "/" .RelPermalink) -}}
+<link rel="preload" as="image" href="{{ $url }}">
+<style>:root{--bg-image:url("{{ $url | safeCSS }}");}</style>
 {{- end -}}
 
-{{- /* Head custom content area end */ -}}
+{{- /* 主题切换的「圆形扩散」过渡（原生 View Transitions，零依赖）。
+       脚本只做「包住」这件事：点击 #theme-toggle 时用 startViewTransition
+       包住主题原有的切换逻辑；不支持该 API 或开启减少动效时直接放行。
+       过渡样式见 fluent.css 的 ::view-transition-* 规则。 */ -}}
+{{- $vt := resources.Get "js/theme-transition.js" | resources.Minify | resources.Fingerprint -}}
+<script defer src="{{ $vt.RelPermalink }}" integrity="{{ $vt.Data.Integrity }}" crossorigin="anonymous"></script>

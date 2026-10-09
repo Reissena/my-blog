@@ -1,0 +1,44 @@
+{{- /* =====================================================================
+    列表页 —— 栏目（/posts/）、标签词条（/tags/xxx/）、分类词条等
+    ---------------------------------------------------------------------
+    · 覆盖主题同名文件；首页由 layouts/index.html 单独处理。
+    · 与首页一样是「左内容 + 右侧栏」两栏（侧栏 partial 见 _partials/side_*.html）。
+    · 归档（/archives/）、标签总览（/tags/）与搜索（/search/）仍走主题的
+      archives.html / taxonomy.html / search.html，保持单栏（只由
+      assets/css/extended/fluent.css 换皮），避免宽表格类页面被侧栏挤窄。
+   ===================================================================== */ -}}
+{{- define "main" }}
+
+{{- $pages := .RegularPages }}
+{{- $paginator := .Paginate $pages }}
+
+<div class="fc-layout">
+    {{- partial "site_nav.html" . }}
+    <div class="fc-main-col">
+
+        <header class="fc-page-head fc-glass">
+            <h1 class="fc-page-title">{{ .Title }}</h1>
+            {{- with .Description }}<p class="fc-page-desc">{{ . }}</p>{{ end }}
+            {{- with .Content }}<div class="fc-page-desc md-content">{{ . }}</div>{{ end }}
+            <span class="fc-chip">{{ len $pages }} 篇</span>
+        </header>
+
+        {{- with $paginator.Pages }}
+        <div class="fc-cards">
+            {{- range . }}{{ partial "fluent_card.html" . }}{{ end }}
+        </div>
+        {{- else }}
+        <p class="fc-empty fc-glass">这个栏目下还没有文章。</p>
+        {{- end }}
+
+        {{- partial "fluent_pager.html" $paginator }}
+
+    </div>
+
+    <aside class="fc-sidebar" aria-label="侧栏">
+        {{- partial "side_profile.html" . }}
+        {{- partial "side_latest.html" . }}
+    </aside>
+</div>
+
+{{- end }}{{/* end main */ -}}

@@ -1,0 +1,48 @@
+{{- /* =====================================================================
+    覆盖主题的 layouts/_partials/cover.html —— 只有文章详情页会用到它
+    （首页 / 列表页的卡片封面在 _partials/fluent_card.html 里自己渲染）
+
+    为什么覆盖：主题原版用 `resources.ByType "image" | GetMatch "*<cover.image>*"`
+    去匹配资源，而 front matter 里写的是带前导斜杠的 "/images/posts/x.jpg"，
+    匹配不到就退化成 `absURL`，在预览的子路径下会指向线上域名（破图）。
+    这里与卡片用同一套解析逻辑：
+      · assets/ 下的图 → 走资源管线（顺带发布到 /images/…），URL 兼容两种构建模式
+      · static/ 下的图（例如 Pages CMS 上传的）→ 直接用公开路径
+      · http(s) 外链 → 原样使用
+    样式用 .fc-post-cover（见 fluent.css），与整站圆角 / 描边一致。
+
+    入参沿用主题的 dict：{{ partial "cover.html" (dict "cxt" . "IsSingle" true "isHidden" $isHidden) }}
+   ===================================================================== */ -}}
+{{- $ctx := .cxt -}}
+{{- $isSingle := .IsSingle -}}
+{{- $isHidden := .isHidden -}}
+{{- if and $ctx (not $isHidden) -}}
+    {{- $cover := "" -}}
+    {{- with $ctx.Params.cover -}}
+        {{- if reflect.IsMap . -}}{{- $cover = .image | default "" -}}{{- else -}}{{- $cover = . -}}{{- end -}}
+    {{- end -}}
+    {{- if not $cover -}}
+        {{- with $ctx.Params.images -}}{{- $cover = index . 0 -}}{{- end -}}
+    {{- end -}}
+    {{- with $cover -}}
+        {{- $alt := $ctx.Param "cover.alt" | default $ctx.Title -}}
+        {{- $caption := $ctx.Param "cover.caption" -}}
+        {{- $src := "" -}}
+        {{- if or (hasPrefix . "http://") (hasPrefix . "https://") -}}
+            {{- $src = . -}}
+        {{- else -}}
+            {{- $path := strings.TrimPrefix "/" . -}}
+            {{- with resources.Get $path -}}
+                {{- $src = printf "%s%s" site.Home.RelPermalink (strings.TrimPrefix "/" .RelPermalink) -}}
+            {{- else -}}
+                {{- $src = printf "%s%s" site.Home.RelPermalink $path -}}
+            {{- end -}}
+        {{- end -}}
+<figure class="fc-post-cover">
+    <img src="{{ $src }}" alt="{{ $alt }}" loading="eager" decoding="async">
+    {{- if and $isSingle $caption }}
+    <figcaption>{{ $caption | markdownify }}</figcaption>
+    {{- end }}
+</figure>
+    {{- end -}}
+{{- end -}}

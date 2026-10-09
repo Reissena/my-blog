@@ -1,0 +1,25 @@
+{{- /* =====================================================================
+    站点头像（QQ 头像）—— 页头品牌方块与首页作者卡共用这一份逻辑
+    ---------------------------------------------------------------------
+    用法：
+        {{ partial "avatar.html" (dict "class" "fc-brand-mark" "size" 28) }}
+        {{ partial "avatar.html" (dict "class" "fc-avatar" "size" 76) }}
+
+    · 图片放在 assets/images/avatar.jpg：调用 .RelPermalink 会让 Hugo 把它
+      发布到 /images/avatar.jpg（与背景图同一套写法，不占用 static/）。
+    · 前缀 site.Home.RelPermalink 是为了同时兼容生产构建（/images/…）与
+      预览构建（preview.toml 的 relativeURLs = true）。
+    · 首屏就可见，所以 loading="eager" 且不带 lazy，避免出现「先空一下再闪出图」。
+    · alt 用站点名；形状/尺寸/圆角由 fluent.css 里的 .fc-brand-mark / .fc-avatar
+      控制，与原来用「浮」字画的方块保持一致。
+   ===================================================================== */ -}}
+{{- $class := .class | default "fc-avatar" -}}
+{{- $size := .size | default 76 -}}
+{{- with resources.Get "images/avatar.jpg" -}}
+{{- $url := printf "%s%s" site.Home.RelPermalink (strings.TrimPrefix "/" .RelPermalink) -}}
+<img class="{{ $class }}" src="{{ $url }}" alt="{{ site.Title }}" width="{{ $size }}" height="{{ $size }}"
+    loading="eager" decoding="async">
+{{- else -}}
+<img class="{{ $class }}" src="/images/avatar.jpg" alt="{{ site.Title }}" width="{{ $size }}" height="{{ $size }}"
+    loading="eager" decoding="async">
+{{- end -}}

@@ -1,147 +1,59 @@
 {{- /* =====================================================================
     覆盖主题的 layouts/_partials/header.html
     ---------------------------------------------------------------------
-    这份文件 = PaperMod 官方 header.html（themes/PaperMod，commit d376885）
-    的完整副本 + 结尾处「登录 / 退出」入口。之所以整份复制，是因为
-    PaperMod 没有提供 header 的扩展钩子；放在项目 layouts/ 下即可覆盖主题，
-    主题源码保持原样。
-
-    ⚠️ 升级主题后请对比一下主题的 header.html 有没有变化，必要时同步过来。
-       自定义的部分已用 AUTH-MODULE 注释框标出，只有十几行。
+    · Fluent（Windows 11 / WinUI 3）风格页头：左侧品牌标记，中间 Segmented
+      分段式导航（首页 / 文章 / 归档 / 标签 / 搜索），右侧深色/浅色切换。
+    · 导航项来自 hugo.toml 的 [[menu.main]]，顺序由 weight 决定。
+    · 深色/浅色切换沿用主题的按钮 id（#theme-toggle）与 moon/sun 图标，
+      主题自带的切换脚本因此照常工作；跟随系统的逻辑在 head.html 里。
+    · 刻意不含任何登录 / 注册 / 会员入口。
    ===================================================================== */ -}}
+{{- $cur := .Permalink | absLangURL -}}
 <header class="header">
     <nav class="header-nav">
         <div class="logo">
-            {{- $label_text := (site.Params.label.text | default site.Title) }}
-            {{- if site.Title }}
-            <a href="{{ "" | absLangURL }}" accesskey="h" title="{{ $label_text }} (Alt + H)">
-                {{- if site.Params.label.icon }}
-                {{- $img := resources.Get site.Params.label.icon }}
-                {{- if $img }}
-                    {{- $processableFormats := (slice "jpg" "jpeg" "png" "tif" "bmp" "gif") -}}
-                    {{- if hugo.IsExtended -}}
-                        {{- $processableFormats = $processableFormats | append "webp" -}}
-                    {{- end -}}
-                    {{- $prod := (hugo.IsProduction | or (eq site.Params.env "production")) }}
-                    {{- if and (in $processableFormats $img.MediaType.SubType) (eq $prod true)}}
-                        {{- if site.Params.label.iconHeight }}
-                            {{- $img = $img.Resize (printf "x%d" site.Params.label.iconHeight) }}
-                        {{ else }}
-                            {{- $img = $img.Resize "x30" }}
-                        {{- end }}
-                    {{- end }}
-                    <img src="{{ $img.Permalink }}" alt="" aria-label="logo"
-                        height="{{- site.Params.label.iconHeight | default "30" -}}">
-                {{- else }}
-                <img src="{{- site.Params.label.icon | absURL -}}" alt="" aria-label="logo"
-                    height="{{- site.Params.label.iconHeight | default "30" -}}">
-                {{- end -}}
-                {{- else if hasPrefix site.Params.label.iconSVG "<svg" }}
-                    {{ site.Params.label.iconSVG | safeHTML }}
-                {{- end -}}
-                {{- $label_text -}}
+            <a class="fc-brand" href="{{ "" | absLangURL }}" accesskey="h" title="{{ site.Title }} (Alt + H)">
+                {{- partial "avatar.html" (dict "class" "fc-brand-mark" "size" 28) }}
+                <span class="fc-brand-text">{{ site.Title }}</span>
             </a>
-            {{- end }}
-
-            {{- $lsenabled := (or (not site.Params.disableThemeToggle) (and (not site.Params.disableLangToggle) (hugo.IsMultilingual))) }}
-            {{- if $lsenabled }}
-            <div class="logo-switches">
-                {{- if (not site.Params.disableThemeToggle) }}
-                <button id="theme-toggle" class="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
-                    <svg class="moon" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
-                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                    </svg>
-                    <svg class="sun" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
-                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="5"></circle>
-                        <line x1="12" y1="1" x2="12" y2="3"></line>
-                        <line x1="12" y1="21" x2="12" y2="23"></line>
-                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                        <line x1="1" y1="12" x2="3" y2="12"></line>
-                        <line x1="21" y1="12" x2="23" y2="12"></line>
-                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                    </svg>
-                </button>
-                {{- end }}
-                
-                {{- if (not site.Params.disableLangToggle) }}
-                    {{- $lang := .Lang}}
-                    {{- with site.Home.Translations }}
-                    {{- $separator := or $label_text (not site.Params.disableThemeToggle)}}
-                    {{- if $separator }}<span class="nav-sep">|</span>{{ end }}
-                    <ul class="lang-menu">
-                        {{- range . -}}
-                        {{- if ne $lang .Lang }}
-                        <li>
-                            <a href="{{- .Permalink -}}" title="{{ .Language.Params.languageAltTitle | default (.Language.LanguageName | emojify) | default (.Lang | title) }}"
-                                aria-label="{{ .Language.LanguageName | default (.Lang | title) }}">
-                                {{- if (and site.Params.displayFullLangName (.Language.LanguageName)) }}
-                                {{- .Language.LanguageName | emojify -}}
-                                {{- else }}
-                                {{- .Lang | title -}}
-                                {{- end }}
-                            </a>
-                        </li>
-                        {{- end -}}
-                        {{- end}}
-                    </ul>
-                    {{- end }}
-                {{- end }}
-            </div>
-            {{- end }}
         </div>
-        {{- $currentPage := . }}
-        <ul id="menu" class="menu">
+
+        <ul id="menu" class="menu fc-segmented">
             {{- range site.Menus.main }}
-            {{- $menu_item_url := (cond (strings.HasSuffix .URL "/") .URL (printf "%s/" .URL) ) | absLangURL }}
-            {{- $page_url:= $currentPage.Permalink | absLangURL }}
-            {{- $is_search := eq (site.GetPage .KeyName).Layout `search` }}
+            {{- $url := .URL | absLangURL }}
+            {{- $isSearch := eq .Identifier "search" }}
+            {{- $active := cond (eq .URL "/") (eq $cur $url) (hasPrefix $cur $url) }}
             <li>
-                <a href="{{ .URL | absLangURL }}" title="{{ .Title | default .Name }} {{- cond $is_search (" (Alt + /)" | safeHTMLAttr) ("" | safeHTMLAttr ) }}"
-                {{- cond $is_search (" accesskey=/" | safeHTMLAttr) ("" | safeHTMLAttr ) }}>
-                    <span {{- if eq $menu_item_url $page_url }} class="active" {{- end }}>
-                        {{- .Pre }}
-                        {{- .Name -}}
-                        {{ .Post -}}
-                    </span>
-                    {{- if (findRE "://" .URL) }}&nbsp;
-                    <svg fill="none" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round"
-                        stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24" height="12" width="12">
-                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"></path>
-                        <path d="M15 3h6v6"></path>
-                        <path d="M10 14L21 3"></path>
-                    </svg>
-                    {{- end }}
+                <a href="{{ $url }}" title="{{ .Title | default .Name }}"
+                    {{- if $isSearch }} accesskey="/"{{ end }}
+                    {{- if $active }} class="active" aria-current="page"{{ end }}>
+                    <span>{{ .Pre }}{{ .Name }}{{ .Post }}</span>
                 </a>
             </li>
             {{- end }}
-            {{- /* ===================== AUTH-MODULE START =====================
-               登录模块：右侧「登录 / 当前用户 + 退出」入口，以及登录后才出现的
-               「会员专区」链接。未登录时导航仍然是 文章 / 归档 / 标签 / 搜索 + 登录。
-               登录态是浏览器本地的，所以这里只输出静态骨架，由
-               assets/js/auth.js 在加载后按需切换（hidden 属性控制显隐）。
-               JS 未加载时「登录」仍是一个可用的普通链接（渐进增强）。
-               ============================================================ */ -}}
-            {{- $auth := site.Params.auth }}
-            {{- if and $auth (ne $auth.enabled false) }}
-            <li class="menu-auth-item" id="auth-members-item" hidden>
-                <a href="{{ $auth.membersPath | default "private/" | relURL }}" title="会员专区（需登录）">会员专区</a>
-            </li>
-            <li class="menu-auth-item" id="auth-nav">
-                <a id="auth-login-link" href="{{ $auth.loginPath | default "login/" | relURL }}" rel="nofollow"
-                    title="登录后可访问会员内容">登录</a>
-                <span class="auth-user-box" id="auth-user-box" hidden>
-                    <span class="auth-user-name" id="auth-user-name" title="当前登录用户"></span>
-                    <button type="button" class="auth-logout" data-auth-logout title="退出登录">退出</button>
-                </span>
-            </li>
-            {{- end }}
-            {{- /* ====================== AUTH-MODULE END ====================== */ -}}
         </ul>
+
+        <div class="logo-switches">
+            {{- if (not site.Params.disableThemeToggle) }}
+            <button id="theme-toggle" class="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                <svg class="moon" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+                <svg class="sun" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+            </button>
+            {{- end }}
+        </div>
     </nav>
 </header>

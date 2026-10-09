@@ -1,0 +1,74 @@
+{{- /* =====================================================================
+    文章卡片（首页 / 列表页共用）：封面图 · 标题 · 日期 · 摘要 · 标签
+    ---------------------------------------------------------------------
+    参数：一个 Page（用 {{ partial "fluent_card.html" . }} 调用）
+
+    封面图的取值顺序：
+      1) front matter 的 cover —— 字符串或对象两种写法都兼容：
+           cover: "/images/posts/x.jpg"
+           cover: { image: "/images/posts/x.jpg", alt: "…" }
+      2) front matter 的 images 数组的第一张
+      3) 都没有 → 不输出 <img>，改用纯 CSS 渐变占位方块（取标题首字），
+         所以绝不会出现破图，网格高度也始终整齐
+
+    图片路径解析：先当 Hugo 资源找（assets/ 下的图会被顺带发布到 /images/…），
+    找不到再当普通公开路径用（static/ 下的图，例如 Pages CMS 上传的）。
+    外链（http/https 开头）原样使用。
+   ===================================================================== */ -}}
+{{- $cover := "" -}}
+{{- with .Params.cover -}}
+    {{- if reflect.IsMap . -}}{{- $cover = .image | default "" -}}{{- else -}}{{- $cover = . -}}{{- end -}}
+{{- end -}}
+{{- if not $cover -}}
+    {{- with .Params.images -}}{{- $cover = index . 0 -}}{{- end -}}
+{{- end -}}
+{{- $src := "" -}}
+{{- $alt := .Param "cover.alt" | default .Title -}}
+{{- with $cover -}}
+    {{- if or (hasPrefix . "http://") (hasPrefix . "https://") -}}
+        {{- $src = . -}}
+    {{- else -}}
+        {{- $path := strings.TrimPrefix "/" . -}}
+        {{- with resources.Get $path -}}
+            {{- $src = printf "%s%s" site.Home.RelPermalink (strings.TrimPrefix "/" .RelPermalink) -}}
+        {{- else -}}
+            {{- $src = printf "%s%s" site.Home.RelPermalink $path -}}
+        {{- end -}}
+    {{- end -}}
+{{- end -}}
+<article class="fc-card">
+    <div class="fc-card-cover">
+        {{- if $src }}
+        <img src="{{ $src }}" alt="{{ $alt }}" loading="lazy" decoding="async">
+        {{- else }}
+        <span class="fc-card-cover-ph" aria-hidden="true">{{ substr .Title 0 1 }}</span>
+        {{- end }}
+    </div>
+    <div class="fc-card-body">
+        <header class="fc-card-head">
+            <h3 class="fc-card-title">
+                <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+            </h3>
+            <time class="fc-card-date" datetime="{{ .Date.Format "2006-01-02" }}">
+                {{- .Date | time.Format (site.Params.DateFormat | default "2006-01-02") -}}
+            </time>
+        </header>
+        {{- if not (.Param "hideSummary") }}
+        <p class="fc-card-summary">
+            {{- with .Summary }}{{ . | plainify | htmlUnescape | strings.TrimSpace }}{{ else }}（暂无摘要）{{ end -}}
+        </p>
+        {{- end }}
+        <footer class="fc-card-foot">
+            {{- with .GetTerms "tags" }}
+            <ul class="fc-tags">
+                {{- range . }}
+                <li><a href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></li>
+                {{- end }}
+            </ul>
+            {{- end }}
+            {{- if site.Params.ShowReadingTime }}
+            <span class="fc-readtime">{{ .ReadingTime }} 分钟</span>
+            {{- end }}
+        </footer>
+    </div>
+</article>

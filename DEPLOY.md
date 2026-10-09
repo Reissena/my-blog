@@ -1,4 +1,4 @@
-# DEPLOY.md —— 上线部署说明
+﻿# DEPLOY.md —— 上线部署说明
 
 > 适用仓库：本仓库根目录（与 `hugo.toml` 同级）。
 > 站点：Hugo + PaperMod 中文博客，带「前端门禁式」登录模块。
@@ -8,24 +8,46 @@
 
 ## 0. 现状速查
 
+> **2026-10-09 改版**：站点定位收敛为「个人主页 + 文章」，**已整体移除登录 / 注册 / 会员区
+> 与前端门禁**（相关文件与 `hugo.toml` 的 `[params.auth]` 全部删除，详见 §6）。
+> 同时改成 Windows 11 / WinUI 3（Fluent）观感的毛玻璃界面，新增 B 站视频短代码与
+> Pages CMS 网页后台配置。
+
 | 项目 | 值 |
 | --- | --- |
+| 站点 | **浮华YUN的博客** |
 | 站点根目录 | 仓库根（有 `hugo.toml` 的那一层） |
+| baseURL | `https://yunblog.com.cn/`（线上就是这个域名） |
 | 主题 | PaperMod，以 **git submodule** 挂在 `themes/PaperMod`（无 Hugo Modules） |
-| Hugo 版本要求 | **≥ 0.158.0 extended**（`hugo.toml` 用了 `locale`；PaperMod 本身要求 ≥ 0.146.0）<br>本地已验证版本：`v0.167.0+extended` |
-| 构建命令 | `hugo --minify` |
+| Hugo 版本要求 | **≥ 0.158.0 extended**（`hugo.toml` 用了 `locale`）<br>本仓库旁边自带一份：`..\tools\hugo\hugo.exe`（v0.167.0 extended，已验证） |
+| 构建命令 | 见 §1.3（`HUGO_CACHEDIR` 必须是绝对路径） |
 | 产物目录 | `public/`（已在 `.gitignore` 里，不入库） |
-| baseURL | `hugo.toml` 里目前是 `https://example.com/`，**上线前必须改成真实域名** |
-| 登录模块新增文件 | `layouts/login.html`、`layouts/_partials/header.html`（覆盖主题）、`layouts/_partials/extend_head.html`（覆盖主题）、`assets/js/auth.js`、`assets/css/extended/auth.css`、`content/login.md`、`content/private/`、`tools/hash-password.mjs` |
+| 主栏目 | `mainSections = ["posts"]` |
+| 顶部导航 | 首页 / 文章 / 归档 / 标签 / 搜索（`hugo.toml` 的 `[[menu.main]]`） |
+| 前端风格 | Windows 11 / WinUI 3（Fluent）毛玻璃 —— `assets/css/extended/fluent.css` |
+| 背景图 | `assets/images/background.jpg`（1920×1045，质量 80，约 415 KB） |
+| 视频 | 不自己托管，用 `{{< bilibili BV… >}}` 嵌 B 站 —— `layouts/_shortcodes/bilibili.html` |
+| 网页后台 | Pages CMS —— `.pages.yml` + `CMS-SETUP.md` |
+| 托管 | Cloudflare Workers 静态资源（见 §3.2b） |
 
-登录模块的测试账号（写在 `hugo.toml` 的 `[[params.auth.users]]` 里）：
+本项目自己写的（覆盖主题的）文件：
 
-| 用户名 | 密码 | 显示名 |
-| --- | --- | --- |
-| `member` | `papermod123` | 会员读者 |
-| `admin` | `admin@2026` | 站长 |
+```
+layouts/index.html                       # 首页：作者信息卡 + 文章卡片列表
+layouts/list.html                        # 栏目 / 标签列表页
+layouts/single.html                      # 文章详情页（毛玻璃卡片）
+layouts/_partials/header.html            # Fluent 页头 + Segmented 分段导航
+layouts/_partials/fluent_card.html       # 文章卡片（首页/列表共用）
+layouts/_partials/fluent_pager.html      # 分页器
+layouts/_partials/extend_head.html       # 注入背景图 URL（主题预留扩展点）
+layouts/_shortcodes/bilibili.html        # B 站视频短代码
+assets/css/extended/fluent.css           # Fluent 样式（自动并入主题样式表）
+assets/images/background.jpg             # 整页背景图
+.pages.yml / CMS-SETUP.md                # 网页后台（Pages CMS）配置与说明
+```
 
-> ⚠️ 上线前请用 `node tools/hash-password.mjs --user member` 换成你自己的密码，见 §8.1。
+> 原则：**主题源码一律不动**。Hugo 会用项目根的 `layouts/`、`assets/` 覆盖
+> `themes/PaperMod` 里的同名文件，所以升级主题不会冲突（见 §7.3）。
 
 ---
 
@@ -60,49 +82,55 @@ hugo server -D --bind 0.0.0.0 --baseURL http://192.168.1.13:1313/ --disableFastR
 
 ### 1.3 只做构建、不启服务
 
-```bash
-hugo --minify                 # 产物在 public/
-hugo --minify --gc --cleanDestinationDir   # 顺手清理旧文件
-hugo --minify -d dist         # 换产物目录
-hugo --minify --baseURL https://blog.example.com/   # 临时覆盖 baseURL
-hugo server --renderToMemory  # 不写磁盘，纯预览
+```powershell
+# 缓存目录必须给「绝对路径」——Hugo v0.167 起 HUGO_CACHEDIR 用相对路径会直接失败：
+#   ERROR failed to create config from result: failed to decode "caches":
+#   ".hugo_cache\my-blog" must resolve to an absolute directory
+$env:HUGO_CACHEDIR = "D:\dsh\个人博客\my-blog\.hugo_cache"
+..\tools\hugo\hugo.exe --minify --gc
+
+# 其它常用写法
+..\tools\hugo\hugo.exe --minify --gc --cleanDestinationDir   # 顺手清理 public/ 里的旧文件
+..\tools\hugo\hugo.exe --minify -d dist                      # 换产物目录
+..\tools\hugo\hugo.exe --minify --baseURL https://yunblog.com.cn/   # 临时覆盖 baseURL
+..\tools\hugo\hugo.exe server --renderToMemory               # 不写磁盘，纯预览
 ```
 
 ### 1.4 本地自查清单
 
-- [ ] `hugo --minify` 退出码为 0，没有 `ERROR`
-- [ ] 首页右侧出现「登录」；未登录时菜单是 文章 / 归档 / 标签 / 搜索 / 登录
-- [ ] 直接访问 `/private/` → 自动跳到 `/login/?redirect=%2Fprivate%2F`
-- [ ] 用 `member` / `papermod123` 登录 → 自动跳回 `/private/`，页头显示「会员读者 退出」
-- [ ] 点「退出」→ 再访问 `/private/` 又会被拦
-- [ ] 右上角切换浅色 / 深色，登录页样式都正常
+- [ ] 构建退出码为 0，输出里没有 `ERROR`（`WARN` 只有主题的弃用提示，可以忽略）
+- [ ] 首页 = 作者信息卡 + 文章卡片列表；顶部导航是**分段式**：首页 / 文章 / 归档 / 标签 / 搜索
+- [ ] **页面上任何地方都没有「登录 / 注册 / 会员区」字样**（见 §2 第 2 步的检查命令）
+- [ ] 背景图整页铺满、滚动时固定不动，前景是半透明毛玻璃卡片
+- [ ] 右上角可手动切换浅色 / 深色；系统切深色时也能自动跟随
+- [ ] 文章详情页正文行高 1.8，代码块圆角，引用块与表格样式正常
+- [ ] `/posts/bilibili-video-demo/` 里的 B 站播放器是 16:9 自适应
+- [ ] 窗口 ≤ 768px 时导航横向滚动、卡片单列
 
 ---
 
 ## 2. 部署前必做
 
-1. **改 baseURL**（`hugo.toml` 第 7 行左右）：
+1. **确认 baseURL**（`hugo.toml` 顶部）：线上域名是 `https://yunblog.com.cn/`，结尾的斜杠不要漏。
+   验证：`Get-ChildItem public -Recurse -File | Select-String 'workers.dev'`（应该没有输出）。
+2. **确认没有互动模块残留**：
 
-   ```toml
-   baseURL = "https://blog.example.com/"   # 结尾的斜杠不要漏
+   ```powershell
+   Get-ChildItem public -Recurse -File | Select-String -Pattern '登录|注册|会员' -List   # 应为空
+   Test-Path public\login, public\register, public\private                                # 三个都应为 False
    ```
 
-   - 用户站点 / 独立域名：`https://blog.example.com/`
-   - GitHub Pages 项目站点：`https://<用户名>.github.io/<仓库名>/`
-   - Cloudflare Pages / Netlify / Vercel 的子域名：`https://<项目名>.pages.dev/` 等
-
-   > 登录模块内部用的是 `site.Home.RelPermalink`（只有路径），所以即使 baseURL 忘了改，
-   > 登录/跳转也能工作；但 canonical、sitemap、RSS、favicon 会指错，**还是要改**。
-
-2. **换掉测试密码**（见 §8.1）。
-
-3. **提交并推送**：
+3. **本地构建**（见 §1.3），确认 `public/` 是最新的产物。
+4. **提交并推送**（要用 Pages CMS 或让平台自动构建，就必须推到 GitHub）：
 
    ```bash
    git add -A
-   git commit -m "feat: 增加前端登录模块 + 部署文档"
+   git commit -m "feat: Fluent 风格改版 + B 站短代码 + Pages CMS 配置"
    git push origin main
    ```
+
+5. **部署**：见 §3.2b（Cloudflare Workers 静态资源）。
+   只想本地看效果、不部署的话，跳过第 4、5 步。
 
 ---
 
@@ -249,6 +277,52 @@ git push -f origin gh-pages
 
 ---
 
+### 3.2b Cloudflare Workers 静态资源（**当前站点就是这么部署的**，地址 `*.workers.dev`）
+
+Workers 现在也支持直接托管静态资源（Static Assets），比 Pages 更灵活，而且自带 `wrangler` 一键发布。
+当前线上地址是 `https://my-blog.3307590541.workers.dev/`，就是这个路子。
+
+1. 装 wrangler 并登录：
+
+   ```bash
+   npm i -D wrangler
+   npx wrangler login
+   ```
+
+2. 仓库根加一个 `wrangler.toml`（**注意别提交 `public/`**）。
+   如果你是在 Cloudflare 控制台里「连 Git 仓库」构建的（仓库里没有 `wrangler.toml`），
+   跳过这一步，直接在控制台填构建命令与输出目录即可：
+
+   ```toml
+   name = "my-blog"
+   compatibility_date = "2026-01-01"
+
+   [assets]
+   directory = "./public"
+   # 目录里没有的路径不要回落到 index.html，保持 Hugo 的 404
+   not_found_handling = "404-page"
+   ```
+
+3. 构建 + 发布：
+
+   ```bash
+   $env:HUGO_CACHEDIR = "D:\dsh\个人博客\my-blog\.hugo_cache"   # 必须绝对路径，见 §1.3
+   ..\tools\hugo\hugo.exe --minify --cleanDestinationDir
+   npx wrangler deploy
+   ```
+
+   输出里会给出 `https://my-blog.<账号>.workers.dev`。
+
+4. 之后每一次内容更新都是「构建 + deploy」两条命令；想改成推送自动发布，
+   可以在 Cloudflare 控制台给这个 Worker 绑定 Git 仓库（Workers Builds），
+   构建命令填 `hugo --minify`，环境变量 `HUGO_VERSION=0.167.0`（缓存目录用绝对路径，见 §1.3）。
+
+5. **绑定自定义域名**（做 Cloudflare Access 的前置条件）：
+   控制台 → `Workers & Pages` → 选中该 Worker → `Settings → Domains & Routes → Add → Custom domain`。
+   顺手可以把 `*.workers.dev` 这个默认域名**禁用**，避免别人绕过 Access 直连源站。
+
+---
+
 ### 3.3 Netlify
 
 1. <https://app.netlify.com/> → **Add new site → Import an existing project** → 选仓库。
@@ -272,8 +346,8 @@ git push -f origin gh-pages
 
 4. 部署完拿到 `https://<站点名>.netlify.app`。
 
-**取舍**：免费版 100 GB/月流量，自带表单收集、身份认证（Identity）、Serverless Functions，
-想给登录模块升级成「真鉴权」时最省事（见 §7.2）。国内速度一般。
+**取舍**：免费版 100 GB/月流量，自带表单收集、身份认证（Identity）、Serverless Functions。国内速度一般。
+
 
 ---
 
@@ -403,279 +477,90 @@ rclone sync public/ myremote:my-blog-bucket --progress
 
 ---
 
-## 6. 登录模块：能做什么、不能做什么
+## 6. 已移除的功能（2026-10-09）
 
-### 6.1 它做了什么
+早期版本带一套「前端门禁式」登录 / 注册 / 会员区：`content/private/`、`content/login.md`、
+`content/register.md`、`layouts/login.html`、`layouts/register.html`、`layouts/private/`、
+`assets/js/auth.js`、`assets/css/extended/auth.css`，以及 `hugo.toml` 里的 `[params.auth]`
+与 `[[params.auth.users]]` 账号表。
 
-- `/login/`：用户名 + 密码 + 「记住我」，错误提示、失败冷却、深色模式适配。
-- 口令**不存明文**：`hugo.toml` 里只有 `salt` + `hash`（PBKDF2-HMAC-SHA256，默认 15 万次迭代，32 字节输出）。
-- 校验在**浏览器本地**完成：优先用 `crypto.subtle`（Web Crypto），不可用时自动切到内置纯 JS 实现，
-  所以局域网 HTTP 访问也能登录。
-- 登录态放 `localStorage`（记住我，默认 30 天）或 `sessionStorage`（默认 12 小时），页头显示用户名 + 「退出登录」。
-- `private: true` 的页面由同步脚本在 `<head>` 里做门禁：未登录直接
-  `location.replace("/login/?redirect=" + 当前路径)`，登录成功后跳回原页。
-- 会员页面已从 **RSS / 搜索索引 / sitemap** 中排除，并带 `noindex, nofollow`。
+按站点新定位（**个人主页 + 文章，不要任何互动功能**），以上文件与配置**已全部删除**，
+现在构建产物里没有任何登录 / 注册 / 会员页面，也没有任何门禁脚本。
 
-### 6.2 它**做不到**什么（务必知道）
+需要查旧实现时看 git 历史：
 
-Hugo 是纯静态站点，构建出来的 HTML/JS 会原样发给每一个访客。因此：
+```bash
+git log --oneline
+git show 6e3ff5b --stat            # 引入登录模块的那次提交
+git show 6e3ff5b:layouts/login.html
+```
 
-1. **内容就在公开文件里**。会「查看网页源代码」或用 `curl https://blog.example.com/private/members-only/`
-   的人，能拿到全文——门禁只是浏览器端的一段跳转脚本。
-2. **登录态可以伪造**。`localStorage` 里的 `pmauth.session` 是明文的 JSON，改一下 `exp`
-   或直接手写一条，就能「免密登录」。页头会显示你随便编的用户名。
-3. **哈希是公开的**。`/login/` 页面的 HTML 里带着 `salt`/`hash`，可以离线暴力破解
-   （15 万次 PBKDF2 能显著抬高成本，但挡不住弱密码）。
-4. **前端限流形同虚设**。失败冷却存在 `localStorage`，清掉即可；脚本也可以无限制地试。
-5. **搜索引擎/爬虫也遵守不了**：已经不指望 robots，靠的是没人知道 URL。
-
-**一句话：这套机制挡的是「随手点进来的人」和「普通读者」，不是「攻击者」。**
-适合：草稿预览、会员名单、内部资料索引这类**泄露了也不致命**的内容。
-
-### 6.3 怎么判断你属于哪一类
-
-| 内容性质 | 建议方案 |
-| --- | --- |
-| 会给朋友看的草稿、读者群专属文章 | ✅ 本模块够用 |
-| 客户信息、内部文档、付费内容 | ❌ 用 §7 的方案 |
-| 密码、密钥、身份证件 | ❌ 任何静态托管都不行，自建后端 + 数据库 |
-
+> **以后真的需要「只有特定人能看到的内容」怎么办？**
+> 不要再走前端门禁那条路 —— 纯静态站的前端门禁挡不住 `curl`，内容本来就在公开文件里。
+> 正确做法是在**边缘**拦截：Cloudflare Zero Trust → Access → Applications →
+> Add an application → Self-hosted → 填域名 + path → 策略 `Allow` + `Emails`，
+> 然后用 `curl -sI https://你的域名/私有路径/` 确认返回 302（而不是 200）。
+> 或者更省事：这类内容干脆别放进这个站点。
 ---
 
-## 7. 升级到「真安全」方案
+## 7. 日常维护
 
-### 7.1 Cloudflare Access（零信任，最推荐给静态站）
+### 7.1 写一篇新文章
 
-原理：Cloudflare 在**边缘**拦截，未授权的请求根本拿不到文件，静态站零改动。
+本地新建（推荐，标题想叫什么就叫什么）：
 
-1. 域名 NS 托管到 Cloudflare（免费版即可）。
-2. 打开 **Zero Trust → Access → Applications → Add an application → Self-hosted**。
-3. 配置：
-   - Application domain：`blog.example.com`，path 填 `private`（即保护 `/private/*`）
-   - Session Duration：24 hours
-   - Identity providers：`One-time PIN`（邮箱验证码，零配置）或 GitHub / Google
-   - Access policies：`Allow` → `Emails` → 填你自己的邮箱（或 `Emails ending in @yourdomain.com`）
-4. 保存后访问 `https://blog.example.com/private/`，会被 302 到 Cloudflare 的登录页；
-   验证邮箱后自动跳回。**curl / 源码查看者也拿不到内容。**
-5. 免费版额度 50 个用户，个人博客绰绰有余。
-
-配套调整：可以删掉本项目的门禁脚本（`extend_head.html` 里的 gate 部分），只保留页头登录入口
-也无意义了——建议把 `[params.auth] enabled = false`，把鉴权完全交给 Access。
-
-### 7.2 Netlify Identity（已在用 Netlify 时最省事）
-
-1. Netlify 站点 → **Identity → Enable Identity**，邀请用户（`Identity → Invite users`）。
-2. 在 `static/` 下放官方 `netlify-identity-widget.js` 初始化代码，用
-   `netlifyIdentity.on("login", ...)` 拿 JWT。
-3. 真正的保护要靠 **Edge Function**（`netlify/edge-functions/auth.ts`）：
-
-   ```ts
-   import type { Config, Context } from "@netlify/edge-functions";
-
-   export default async function handler(req: Request, ctx: Context) {
-     const user = ctx.cookies.get("nf_jwt")
-       ? await ctx.identity?.getUser()   // 官方 identity 上下文
-       : await fetch("https://<站点>/.netlify/identity/user", {
-           headers: { Authorization: `Bearer ${ctx.cookies.get("nf_jwt") ?? ""}` },
-         }).then(r => (r.ok ? r.json() : null));
-     if (!user) {
-       return new Response(null, { status: 302, headers: { Location: "/login/" } });
-     }
-     return ctx.next();
-   }
-
-   export const config: Config = { path: "/private/*" };
-   ```
-
-4. 部署后 `/private/*` 的请求会先过 Edge Function，未登录直接 302。
-
-**取舍**：一体化（用户管理 + JWT + 边缘鉴权），但只能用在 Netlify 上，且 Edge Function 调试略麻烦。
-
-### 7.3 自建 Node / Express 后端（最可控）
-
-思路：Hugo 只管渲染，`/private/*` 交给后端做真正的会话校验。
-
-```
-blog-server/
-├── public/          # hugo --minify 的产物（静态资源）
-├── server.js
-└── package.json
+```powershell
+..\tools\hugo\hugo.exe new content/posts/我的新文章.md
 ```
 
-```js
-// server.js —— 最小可用示例：Express + 会话 + bcrypt
-import express from "express";
-import session from "express-session";
-import bcrypt from "bcryptjs";
-import rateLimit from "express-rate-limit";
-import fs from "node:fs";
-
-const app = express();
-app.use(express.urlencoded({ extended: false }));
-
-// 生产环境把 secret 放到环境变量里：SESSION_SECRET=...
-app.use(session({
-  secret: process.env.SESSION_SECRET || "change-me",
-  resave: false,
-  saveUninitialized: false,
-  cookie: { httpOnly: true, sameSite: "lax", secure: "auto", maxAge: 12 * 3600 * 1000 },
-}));
-
-// 账户存在环境变量或数据库里，绝对不能写进前端
-const USERS = {
-  member: { name: "会员读者", hash: bcrypt.hashSync(process.env.MEMBER_PASSWORD || "papermod123", 10) },
-};
-
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 20 }));   // 登录限流
-
-app.post("/api/login", async (req, res) => {
-  const { username = "", password = "" } = req.body;
-  const user = USERS[username];
-  const ok = user && (await bcrypt.compare(password, user.hash));
-  if (!ok) return res.status(401).json({ error: "用户名或密码不正确" });
-  req.session.user = { username, name: user.name };
-  res.json({ ok: true, user: req.session.user });
-});
-
-app.post("/api/logout", (req, res) => req.session.destroy(() => res.json({ ok: true })));
-app.get("/api/me", (req, res) => res.json({ user: req.session.user ?? null }));
-
-// 关键：服务端拦截，未登录的人拿不到 HTML
-app.use("/private", (req, res, next) => {
-  if (req.session.user) return next();
-  res.redirect(302, `/login/?redirect=${encodeURIComponent(req.originalUrl)}`);
-});
-
-app.use(express.static("public", { extensions: ["html"] }));
-app.listen(process.env.PORT || 3000);
-```
-
-```bash
-npm i express express-session bcryptjs express-rate-limit
-node server.js           # 或 pm2 start server.js --name blog
-```
-
-再用 Caddy / Nginx 反代 + HTTPS：
-
-```caddyfile
-blog.example.com {
-    reverse_proxy 127.0.0.1:3000
-    encode zstd gzip
-}
-```
-
-**取舍**：真正安全（口令、会话、限流都在服务端），但多了一台服务器 / 容器要运维，
-且 `/private/*` 的静态文件必须由后端来决定是否放行——原来的 `public/private/*.html` 不能再被
-对象存储或 CDN 直出，否则绕过所有校验。**如果继续用 CDN，请把 CDN 回源指向后端，别直接指向桶。**
-
-### 7.4 Caddy basic auth（最轻量的「真·密码保护」）
-
-适合：只想给自己的小站加一把锁，不想要任何前端逻辑。
-
-```bash
-# 1) 生成密码哈希（交互输入密码）
-caddy hash-password --plaintext '你的密码'
-# 输出类似：$2a$14$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-```caddyfile
-# 2) Caddyfile
-blog.example.com {
-    root * /srv/blog/public
-    encode zstd gzip
-
-    # 保护会员目录：浏览器会弹原生账号密码框
-    @members path /private/*
-    basic_auth @members {
-        member $2a$14$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    }
-
-    file_server
-}
-```
-
-```bash
-caddy run --config Caddyfile      # 自动申请并续期 HTTPS 证书
-```
-
-**取舍**：5 分钟搞定、由服务器拦截（源码也看不到）、支持多人多密码；缺点是浏览器原生弹窗
-（不能用自定义登录页）、没有「记住我 / 退出」之类的体验，密码要共享。
-
-**想保留自定义登录页**：让 Caddy 反代 §7.3 的 Node 服务即可，两者可以叠加
-（外网先过 basic auth，内部再走会话）。
-
-### 7.5 方案对比
-
-| 方案 | 内容真的藏住了吗 | 需要什么 | 登录体验 |
-| --- | --- | --- | --- |
-| 本项目（前端门禁） | ❌ 否 | 无 | 自定义登录页，好 |
-| Cloudflare Access | ✅ 是 | 域名接入 Cloudflare | 邮箱验证码，好 |
-| Netlify Identity + Edge Function | ✅ 是 | Netlify | 中等 |
-| 自建 Node/Express | ✅ 是 | 一台服务器 | 自定义，最好 |
-| Caddy basic auth | ✅ 是 | 一台服务器 + Caddy | 浏览器原生弹窗，够用 |
-
----
-
-## 8. 日常维护
-
-### 8.1 换密码 / 加账号
-
-```bash
-# 生成新哈希（交互式输入，不回显）
-node tools/hash-password.mjs --user member --display-name "会员读者"
-
-# 校验现网口令是否正确（读 hugo.toml 里的 salt/hash 重新算一遍）
-node tools/hash-password.mjs --check member papermod123
-node tools/hash-password.mjs --check          # 只列出现有账号
-
-# 自检：确认 assets/js/auth.js 的纯 JS 实现与 Node crypto 结果一致
-node tools/hash-password.mjs --selftest
-```
-
-把输出的 `salt` / `hash` / `iterations` 三行替换掉 `hugo.toml` 里对应账号的三行，
-提交推送即可。**已在线的访客不会立刻掉线**（登录态有有效期），必要时让他在页头点「退出登录」。
-
-### 8.2 新增一篇会员文章
-
-```bash
-hugo new content private/我的新文章.md    # 或直接新建文件
-```
-
-因为 `content/private/_index.md` 里配了 `cascade`，这个栏目下的页面会自动带上
-`private / robotsNoIndex / hiddenInRss / searchHidden / sitemap.disable`，**不用重复写**。
-
-给 `content/posts/` 下的普通文章加门禁？只要在它的 front matter 里加一行：
+或者直接建文件，front matter 照抄 `content/posts/hello-world.md`：
 
 ```yaml
-private: true
+---
+title: "标题"
+date: 2026-10-09
+draft: false
+tags: ["Hugo", "折腾"]
+categories: ["随笔"]
+summary: "列表卡片上显示的一两句话摘要。"
+---
 ```
 
-### 8.3 关掉登录模块
+- `draft: true` 的文章默认不发布（本地 `hugo server -D` 仍能看到）。
+- **嵌 B 站视频**：正文里写 `{{< bilibili BV1xx411c7mD >}}`，详见 `content/posts/bilibili-video-demo.md`。
+- **封面图**：图片放进 `static/images/`，front matter 里写 `cover: { image: "/images/xxx.jpg", alt: "描述" }`。
+- 旧的 `private: true`（登录门禁）那套已经不存在了，不要再加。
 
-```toml
-# hugo.toml
-[params.auth]
-  enabled = false
-```
+### 7.2 用网页后台写文章（Pages CMS）
 
-页头入口、门禁跳转、config 注入都会消失（`/login/` 页面本身还在，可以顺手把 `content/login.md` 删掉）。
+见 `CMS-SETUP.md`：把仓库推到 GitHub → 在 pagescms.org 安装 GitHub App 并只勾这个仓库 →
+打开网页后台就能写文章、传图片，保存即提交到仓库。仓库根的 `.pages.yml` 已经配好字段
+（title / date / draft / tags / summary / cover / 正文），图片默认传到 `static/images/`。
 
-### 8.4 升级 PaperMod（重要）
+### 7.3 升级 PaperMod（重要）
 
-主题是 submodule，且本项目**覆盖了主题的两个 partial**：
+主题是 git submodule。本项目的做法是：**主题源码一个字都不改**，需要改的地方一律在项目根
+用同名文件覆盖（Hugo 的项目级 `layouts/`、`assets/` 优先于 `themes/`）。
 
 ```bash
 git submodule update --remote themes/PaperMod
 git diff --stat themes/PaperMod
-git diff themes/PaperMod/layouts/_partials/header.html   # 我们这个文件是它的完整副本
 ```
 
-- `layouts/_partials/header.html`：本项目的副本。主题更新后如果这个文件变了，
-  请把变化同步过来（自定义部分用 `AUTH-MODULE START/END` 注释框标出）。
-- `layouts/_partials/extend_head.html`：主题里是空的扩展点，直接被我方覆盖，**不需要同步**。
-- `assets/css/extended/auth.css`、`assets/js/auth.js`：走 Hugo 的资源管线，与主题不冲突。
+我们覆盖 / 新增的文件（主题升级后重点核对这几处）：
 
-提交 submodule 指针：
+- `layouts/_partials/header.html`：**完全重写**（Fluent 页头 + Segmented 分段导航），
+  不是主题文件的副本，所以升级主题**不需要**同步内容；但要留意主题是否给导航加了新特性。
+- `layouts/index.html`、`layouts/list.html`、`layouts/single.html`：重写的三个主模板。
+  主题若在这几个文件里加了新 partial / 新行为，需要手动评估是否跟进。
+- `layouts/_partials/extend_head.html`：主题里本来就是空的扩展点，我方只用来注入背景图
+  URL，**不需要同步**。
+- `layouts/_partials/fluent_card.html`、`layouts/_partials/fluent_pager.html`：纯自定义部分。
+- `assets/css/extended/fluent.css`：走 Hugo 资源管线自动并入主题样式表，不会与主题冲突；
+  但它覆盖了主题的不少选择器，主题改类名时可能出现「样式回退」，升级后照 §1.4 过一遍即可。
+- `layouts/_shortcodes/bilibili.html`：与主题无关。
+
+升级后务必重新构建（§1.3）并过一遍 §1.4 的自查清单。提交 submodule 指针：
 
 ```bash
 git add themes/PaperMod .gitmodules
@@ -686,34 +571,43 @@ git commit -m "chore: 升级 PaperMod"
 
 ## 9. 本地验证（交给你的三步）
 
-```bash
+```powershell
 # 1) 起服务（局域网可访问，手机也能测）
-hugo server -D --bind 0.0.0.0 --baseURL http://192.168.1.13:1313/
+$env:HUGO_CACHEDIR = "D:\dsh\个人博客\my-blog\.hugo_cache"
+..\tools\hugo\hugo.exe server -D --bind 0.0.0.0 --baseURL http://192.168.1.13:1313/
 
-# 2) 构建验证（应该 exit 0，无 ERROR）
-hugo --minify --gc
+# 2) 构建验证（应该 exit 0，输出里没有 ERROR）
+$env:HUGO_CACHEDIR = "D:\dsh\个人博客\my-blog\.hugo_cache"
+..\tools\hugo\hugo.exe --minify --gc
+
+# 2b) 产物自检
+Get-ChildItem public\* -Pattern 'workers.dev' -Recurse | Select-String 'workers.dev'  # 不该有输出
+Test-Path public\login, public\register, public\private                                # 三个都应为 False
+Select-String -Path public\index.html -Pattern 'var\(--bg-image|/images/background'    # 应能看到背景图引用
 ```
 
-3) 浏览器里走一遍：
+3) 浏览器里走一遍（把 `192.168.1.13` 换成你自己的局域网 IP）：
 
 | 步骤 | 操作 | 预期 |
 | --- | --- | --- |
-| ① | 打开 <http://192.168.1.13:1313/private/> | 自动跳到 `/login/?redirect=%2Fprivate%2F` |
-| ② | 输入 `member` / `papermod123`（勾「记住我」） | 跳回 `/private/`，看到会员文章 |
-| ③ | 看页头右侧 | 显示「👤 会员读者 退出」，菜单多出「会员专区」 |
-| ④ | 点「退出」 | 回到首页，菜单恢复 文章 / 归档 / 标签 / 搜索 / 登录 |
-| ⑤ | 再访问 `/private/` | 又被拦到登录页 |
-| ⑥ | 切深色模式 | 登录页、输入框、按钮样式正常 |
-
-其它账号：`admin` / `admin@2026`。
-命令行验证口令：`node tools/hash-password.mjs --check member papermod123`。
+| ① | 打开首页 | 背景图整页固定不滚动；作者信息卡 + 文章卡片；顶部是分段式导航 |
+| ② | 点导航「文章 / 归档 / 标签 / 搜索」 | 选中项有圆角高亮底，页面正常 |
+| ③ | 打开任意文章 | 正文在毛玻璃卡片里，行高 1.8，代码块是圆角 |
+| ④ | 打开 `/posts/bilibili-video-demo/` | B 站播放器 16:9 自适应，能正常播放 |
+| ⑤ | 点右上角切换 | 浅色 / 深色切换正常，卡片与导航样式都对 |
+| ⑥ | 窗口拖窄到 768px 以下（或手机访问） | 导航整行横向滚动、卡片单列 |
+| ⑦ | 打开 `/search/` 搜个词 | 能搜到文章（搜索索引由 Hugo 生成，不需要后端） |
 
 ---
 
 ## 10. 上线后最推荐的三步
 
-1. `hugo.toml` 改 `baseURL` 为真实域名 + `node tools/hash-password.mjs --user member` 换成自己的密码，提交推送。
-2. 用 **Cloudflare Pages** 接仓库（build command `git submodule update --init --recursive && hugo --minify`，
-   output `public`，环境变量 `HUGO_VERSION=0.167.0`），然后在 `Settings → Domains` 绑自定义域名。
-3. 如果 `/private/` 里的东西**不能泄露**，再花 10 分钟在 Cloudflare 上开 **Zero Trust → Access**，
-   把 `/private/*` 用邮箱验证码保护起来（见 §7.1）——这时候前端的登录模块就只当装饰了。
+1. **把站点重新部署一次**，让线上与本次改版一致（当前线上还是改版前的旧版）：
+   先构建（见 §1.3），再按 §3.2b 用 `npx wrangler deploy` 把 `public/` 整个提交上去
+   （需要先补 `wrangler.toml` 与 Cloudflare 凭据）。⚠️ **必须整棵 `public/` 上传**：
+   只传根级文件的话，`/assets`、`/js`、`/posts` 都会 404。
+2. **接上 Pages CMS**（见 `CMS-SETUP.md`）：仓库推到 GitHub → 安装 Pages CMS 的 GitHub App
+   并只勾这一个仓库 → 以后在网页后台写文章、传图，保存即提交，构建平台自动重新发布。
+3. **补内容与细节**：换成自己的背景图（`assets/images/background.jpg`，建议 1920px 宽、
+   质量 80 左右重新压一遍）、把 `hugo.toml` 里的社交图标换成自己的、需要时在页脚加备案号
+   （见 §5.3）。

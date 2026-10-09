@@ -1,0 +1,33 @@
+{{- /* =====================================================================
+    右侧栏 ①：个人信息卡
+    ---------------------------------------------------------------------
+    · 顶部居中一个 80px 圆形头像（与页头 / 首页作者卡的圆角方块区分开）
+    · 中间居中一行站点名
+    · 底部三格等宽统计：文章 / 标签 / 分类，每格「大数字在上、小号灰标签在下」
+    · 数字全部来自 Hugo 的真实数据，没有写死：
+        文章 = posts 栏目下的常规页数量
+        标签 = site.Taxonomies.tags 的词条数
+        分类 = site.Taxonomies.categories 的词条数
+    · 三格都是链接，分别指向 /archives/、/tags/、/categories/
+   ===================================================================== */ -}}
+{{- $postCount := len (where site.RegularPages "Section" "posts") -}}
+{{- $tagCount := len site.Taxonomies.tags -}}
+{{- $catCount := len site.Taxonomies.categories -}}
+<section class="fc-side-card fc-side-profile">
+    {{- partial "avatar.html" (dict "class" "fc-side-avatar" "size" 80) }}
+    <h2 class="fc-side-name">{{ site.Title }}</h2>
+    <div class="fc-side-stats">
+        <a class="fc-stat" href="{{ "archives/" | relLangURL }}" title="查看全部文章">
+            <span class="fc-stat-num">{{ $postCount }}</span>
+            <span class="fc-stat-label">文章</span>
+        </a>
+        <a class="fc-stat" href="{{ "tags/" | relLangURL }}" title="查看全部标签">
+            <span class="fc-stat-num">{{ $tagCount }}</span>
+            <span class="fc-stat-label">标签</span>
+        </a>
+        <a class="fc-stat" href="{{ "categories/" | relLangURL }}" title="查看全部分类">
+            <span class="fc-stat-num">{{ $catCount }}</span>
+            <span class="fc-stat-label">分类</span>
+        </a>
+    </div>
+</section>

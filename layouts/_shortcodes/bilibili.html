@@ -1,0 +1,35 @@
+{{- /* =====================================================================
+    B 站视频嵌入短代码
+    ---------------------------------------------------------------------
+    用法：
+        {{< bilibili BV1xx411c7mD >}}
+        {{< bilibili bvid="BV1xx411c7mD" p="2" caption="第一期" >}}
+
+    参数：
+        bvid / 第 0 个位置参数 : 必填，视频的 BV 号
+        p                      : 选填，分 P 序号（默认不传 = 第 1 P）
+        autoplay               : 选填，"1" 自动播放（默认 "0"）
+        danmaku                : 选填，"0" 关闭弹幕（默认不传 = 站方默认）
+        caption                : 选填，视频下方的说明文字
+
+    渲染：16:9 自适应 iframe，外套圆角容器（样式见 fluent.css 的 .fc-video）
+   ===================================================================== */ -}}
+{{- $bvid := .Get "bvid" | default (.Get 0) -}}
+{{- if not $bvid -}}
+{{- errorf "bilibili 短代码缺少 BV 号：%s（用法：{{< bilibili BV1xx411c7mD >}）" .Position -}}
+{{- end -}}
+{{- $autoplay := .Get "autoplay" | default "0" -}}
+{{- $src := printf "https://player.bilibili.com/player.html?bvid=%s&autoplay=%s&high_quality=1" $bvid $autoplay -}}
+{{- with .Get "p" }}{{ $src = printf "%s&p=%s" $src . }}{{ end -}}
+{{- with .Get "danmaku" }}{{ $src = printf "%s&danmaku=%s" $src . }}{{ end -}}
+{{- $title := .Get "title" | default (printf "B 站视频 %s" $bvid) -}}
+<figure class="fc-video-wrap">
+    <div class="fc-video">
+        <iframe src="{{ $src }}" title="{{ $title }}" loading="lazy" scrolling="no" frameborder="0"
+            framespacing="0" allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+            referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+    </div>
+    {{- with .Get "caption" }}
+    <figcaption class="fc-video-caption">{{ . }}</figcaption>
+    {{- end }}
+</figure>

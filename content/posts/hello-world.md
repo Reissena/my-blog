@@ -5,6 +5,9 @@ draft: false
 tags: ["Hugo", "PaperMod", "开始"]
 categories: ["随笔"]
 summary: "博客的第一篇文章：记录这个站点是怎么搭起来的。"
+cover:
+  image: "/images/posts/hello-world.jpg"
+  alt: "蓝色渐变底 + 几何图形与 HELLO WORLD 字样的封面图"
 ---
 
 欢迎来到我的个人博客！这是第一篇文章，用来验证 Hugo + PaperMod 的构建和渲染是否正常。

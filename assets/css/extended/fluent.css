@@ -1,0 +1,1377 @@
+/* ============================================================================
+   fluent.css —— Windows 11 / WinUI 3（Fluent Design）观感覆盖层
+   ----------------------------------------------------------------------------
+   位置：assets/css/extended/fluent.css
+   PaperMod 会把 assets/css/extended/*.css 自动拼到主题样式表之后（见主题
+   head.html），所以这里的规则同优先级时天然胜出，不需要改主题源码。
+
+   结构：
+     1. 设计令牌        2. 整页背景图      3. 页头 + Segmented 导航
+     4. 玻璃卡片        5. 首页/列表      6. 文章详情
+     7. 归档 / 标签 / 搜索 / 分页 / 页脚   8. B 站视频   9. 响应式
+   ========================================================================== */
+
+/* ---------------------------------------------------------------- 1. 令牌 */
+:root {
+    --fc-font: system-ui, "Segoe UI", "Microsoft YaHei UI", "微软雅黑", "PingFang SC", sans-serif;
+
+    --fc-radius-card: 14px;
+    --fc-radius-inner: 12px;
+    --fc-radius-pill: 999px;
+
+    --fc-glass-bg: rgba(255, 255, 255, 0.72);
+    --fc-glass-bg-strong: rgba(255, 255, 255, 0.88);
+    --fc-glass-stroke: rgba(255, 255, 255, 0.60);
+    --fc-glass-stroke-hover: rgba(15, 108, 189, 0.38);
+    --fc-shadow: 0 10px 30px rgba(15, 23, 42, 0.10);
+    --fc-shadow-hover: 0 16px 40px rgba(15, 23, 42, 0.16);
+    --fc-blur: blur(20px) saturate(1.8);
+
+    /* 头像：圆角方块外的一圈细边，保证在浅色背景上也看得清 */
+    --fc-avatar-stroke: rgba(0, 0, 0, 0.08);
+    --fc-avatar-shadow: 0 4px 14px rgba(15, 23, 42, 0.16);
+
+    --fc-accent: #0f6cbd;
+    --fc-accent-soft: rgba(15, 108, 189, 0.10);
+
+    /* 顺手把主题自身的布局变量调大一点，卡片列表更舒展 */
+    --radius: 10px;
+    --main-width: 860px;
+    --nav-width: 1120px;
+}
+
+[data-theme="dark"] {
+    --fc-glass-bg: rgba(32, 32, 32, 0.72);
+    --fc-glass-bg-strong: rgba(46, 46, 46, 0.88);
+    --fc-glass-stroke: rgba(255, 255, 255, 0.09);
+    --fc-glass-stroke-hover: rgba(96, 205, 255, 0.35);
+    --fc-shadow: 0 10px 30px rgba(0, 0, 0, 0.40);
+    --fc-shadow-hover: 0 16px 40px rgba(0, 0, 0, 0.52);
+    --fc-accent: #60cdff;
+    --fc-accent-soft: rgba(96, 205, 255, 0.14);
+
+    /* 头像细边：深色背景下改用白色微光边 */
+    --fc-avatar-stroke: rgba(255, 255, 255, 0.12);
+    --fc-avatar-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
+/* ------------------------------------------------------- 2. 整页固定背景图 */
+body {
+    font-family: var(--fc-font);
+    background: transparent;
+}
+
+/* 背景图铺满视口并固定（用 fixed 定位 + background-attachment 双保险，
+   移动端 Safari 对 background-attachment: fixed 支持不好，靠 fixed 定位兜底） */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background-image: var(--bg-image, none);
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+/* 可读性遮罩：浅色下压白、深色下压黑，保证任何底图上文字都够清晰 */
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(180deg,
+            rgba(246, 249, 253, 0.80) 0%,
+            rgba(246, 249, 253, 0.62) 45%,
+            rgba(246, 249, 253, 0.80) 100%);
+}
+
+[data-theme="dark"] body::after {
+    background: linear-gradient(180deg,
+            rgba(10, 12, 16, 0.82) 0%,
+            rgba(10, 12, 16, 0.68) 45%,
+            rgba(10, 12, 16, 0.82) 100%);
+}
+
+/* 主题给 .list（列表类页面）铺了不透明底色，这里全部让位给背景图 */
+.list,
+[data-theme="dark"] .list {
+    background: transparent;
+}
+
+/* --------------------------------------------- 3. 页头 + Segmented 分段导航 */
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--fc-glass-bg);
+    -webkit-backdrop-filter: var(--fc-blur);
+    backdrop-filter: var(--fc-blur);
+    border-bottom: 1px solid var(--fc-glass-stroke);
+}
+
+.header-nav {
+    align-items: center;
+    column-gap: 14px;
+    line-height: 1.4;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.fc-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 17px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+/* 头像图片（QQ 头像）：页头品牌方块 + 首页作者卡共用。
+   形状 / 圆角 / 尺寸与原来用「浮」字画的方块完全一致，只是字换成了图片，
+   所以这里不再需要字号、字重、文字颜色和渐变底色。 */
+.fc-brand-mark {
+    display: block;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid var(--fc-avatar-stroke);
+    box-shadow: var(--fc-avatar-shadow);
+}
+
+/* Segmented 控件：一个圆角胶囊容器里装若干分段，选中项有圆角高亮底 */
+.fc-segmented {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin: 0;
+    padding: 3px;
+    border-radius: var(--fc-radius-pill);
+    background: rgba(255, 255, 255, 0.50);
+    border: 1px solid var(--fc-glass-stroke);
+    -webkit-backdrop-filter: var(--fc-blur);
+    backdrop-filter: var(--fc-blur);
+    overflow-x: auto;
+    scrollbar-width: none;
+    list-style: none;
+}
+
+.fc-segmented::-webkit-scrollbar {
+    display: none;
+}
+
+.fc-segmented li {
+    display: flex;
+}
+
+.fc-segmented a,
+.fc-segmented a span {
+    display: inline-flex;
+    align-items: center;
+    height: 34px;
+    padding: 0 16px;
+    border-radius: var(--fc-radius-pill);
+    color: var(--secondary);
+    font-size: 14.5px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.fc-segmented a:hover,
+.fc-segmented a:hover span {
+    background: rgba(255, 255, 255, 0.55);
+    color: var(--primary);
+}
+
+.fc-segmented a.active,
+.fc-segmented a.active span {
+    background: var(--fc-glass-bg-strong);
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10), 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .fc-segmented {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .fc-segmented a:hover,
+[data-theme="dark"] .fc-segmented a:hover span {
+    background: rgba(255, 255, 255, 0.10);
+}
+
+[data-theme="dark"] .fc-segmented a.active,
+[data-theme="dark"] .fc-segmented a.active span {
+    background: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid var(--fc-glass-stroke);
+    border-radius: var(--fc-radius-pill);
+    background: rgba(255, 255, 255, 0.50);
+    color: var(--primary);
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.theme-toggle:hover {
+    background: var(--fc-glass-bg-strong);
+}
+
+[data-theme="dark"] .theme-toggle {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* ------------------------------------------------------------ 4. 玻璃卡片 */
+.fc-glass {
+    background: var(--fc-glass-bg);
+    -webkit-backdrop-filter: var(--fc-blur);
+    backdrop-filter: var(--fc-blur);
+    border: 1px solid var(--fc-glass-stroke);
+    border-radius: var(--fc-radius-card);
+    box-shadow: var(--fc-shadow);
+}
+
+/* --------------------------------------------------------- 5. 首页 / 列表 */
+.fc-hero {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    padding: 26px 28px;
+    margin: var(--gap) 0 30px;
+}
+
+.fc-avatar {
+    flex: none;
+    display: block;
+    width: 76px;
+    height: 76px;
+    border-radius: 22px;
+    object-fit: cover;
+    border: 1px solid var(--fc-avatar-stroke);
+    box-shadow: var(--fc-avatar-shadow);
+}
+
+.fc-hero-body {
+    min-width: 0;
+}
+
+.fc-hero-title {
+    margin: 0 0 8px;
+    font-size: 26px;
+    line-height: 1.3;
+}
+
+.fc-hero-desc {
+    color: var(--content);
+    font-size: 15.5px;
+    line-height: 1.75;
+}
+
+.fc-hero-desc p {
+    margin: 0;
+}
+
+.fc-hero-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.fc-hero-meta .social-icons a {
+    padding: 4px;
+}
+
+.fc-hero-meta .social-icons a svg {
+    height: 20px;
+    width: 20px;
+}
+
+.fc-chip {
+    display: inline-flex;
+    align-items: center;
+    height: 26px;
+    padding: 0 12px;
+    border-radius: var(--fc-radius-pill);
+    background: var(--fc-accent-soft);
+    border: 1px solid rgba(15, 108, 189, 0.18);
+    color: var(--fc-accent);
+    font-size: 12.5px;
+    font-weight: 600;
+}
+
+.fc-section-title {
+    margin: 0 0 14px;
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+/* 文章卡片网格：主栏内 ≥720px 两列，<720px 单列（见下方 media query） */
+.fc-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+}
+
+@media screen and (max-width: 719px) {
+    .fc-cards {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* 卡片本体不再自己留内边距：内边距交给 .fc-card-body，
+   这样封面图才能顶部通栏；overflow:hidden 让封面上两角跟随卡片圆角 */
+.fc-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+    background: var(--fc-glass-bg);
+    -webkit-backdrop-filter: var(--fc-blur);
+    backdrop-filter: var(--fc-blur);
+    border: 1px solid var(--fc-glass-stroke);
+    border-radius: var(--fc-radius-card);
+    box-shadow: var(--fc-shadow);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+/* 封面：顶部通栏、统一 16:9，上面两个角跟卡片圆角、下面是直角 */
+.fc-card-cover {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: var(--fc-accent-soft);
+    border-bottom: 1px solid var(--fc-glass-stroke);
+}
+
+.fc-card-cover img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+
+.fc-card:hover .fc-card-cover img,
+.fc-card:focus-within .fc-card-cover img {
+    transform: scale(1.03);
+}
+
+/* 没有封面时的占位：与右侧栏「最新文章」同一套渐变 + 标题首字 */
+.fc-card-cover-ph {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, var(--fc-accent-soft), rgba(15, 108, 189, 0.22));
+    color: var(--fc-accent);
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+[data-theme="dark"] .fc-card-cover-ph {
+    background: linear-gradient(135deg, var(--fc-accent-soft), rgba(96, 205, 255, 0.22));
+}
+
+.fc-card-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    padding: 16px 20px 18px;
+}
+
+/* 克制的 hover：轻微上浮 */
+.fc-card:hover,
+.fc-card:focus-within {
+    transform: translateY(-3px);
+    box-shadow: var(--fc-shadow-hover);
+    border-color: var(--fc-glass-stroke-hover);
+}
+
+.fc-card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.fc-card-title {
+    margin: 0;
+    font-size: 19px;
+    line-height: 1.4;
+    /* 标题最多两行，配合统一图片比例让每张卡片高度整齐 */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+}
+
+.fc-card-title a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.fc-card-title a::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--fc-radius-card);
+}
+
+.fc-card-date {
+    flex: none;
+    color: var(--secondary);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+.fc-card-summary {
+    margin: 8px 0 12px;
+    color: var(--secondary);
+    font-size: 14.5px;
+    line-height: 1.7;
+    /* 摘要最多三行：卡片高度一致 */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+}
+
+.fc-card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    /* 卡片等高时把标签 / 阅读时间压到卡片底部 */
+    margin-top: auto;
+}
+
+.fc-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.fc-tags a {
+    position: relative;
+    z-index: 2;
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: var(--fc-radius-pill);
+    background: var(--fc-accent-soft);
+    border: 1px solid rgba(15, 108, 189, 0.18);
+    color: var(--fc-accent);
+    font-size: 12.5px;
+    text-decoration: none;
+}
+
+.fc-tags a:hover {
+    background: rgba(15, 108, 189, 0.18);
+}
+
+.fc-readtime {
+    color: var(--secondary);
+    font-size: 12.5px;
+}
+
+.fc-page-head {
+    padding: 22px 26px;
+    margin: var(--gap) 0 22px;
+}
+
+.fc-page-title {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.3;
+}
+
+.fc-page-desc {
+    margin: 8px 0 0;
+    color: var(--secondary);
+    font-size: 14.5px;
+}
+
+.fc-page-head .fc-chip {
+    margin-top: 12px;
+}
+
+.fc-empty {
+    padding: 20px 24px;
+    color: var(--secondary);
+}
+
+/* --------------------------------------------------------- 6. 文章详情页 */
+.fc-article {
+    padding: 30px 34px 24px;
+    margin: var(--gap) 0;
+}
+
+.post-title {
+    font-size: 34px;
+    line-height: 1.3;
+}
+
+.post-content {
+    color: var(--content);
+    font-size: 16.5px;
+    line-height: 1.8;
+}
+
+/* 文章详情页的封面图（layouts/_partials/cover.html 覆盖主题时输出） */
+.fc-post-cover {
+    margin: 0 0 var(--content-gap) 0;
+    border-radius: var(--fc-radius-inner);
+    overflow: hidden;
+    border: 1px solid var(--fc-glass-stroke);
+}
+
+.fc-post-cover img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.fc-post-cover figcaption {
+    padding: 8px 12px;
+    background: var(--fc-accent-soft);
+    color: var(--secondary);
+    font-size: 13px;
+    text-align: center;
+}
+
+.post-content p,
+.post-content li {
+    line-height: 1.8;
+}
+
+.post-content h2 {
+    margin-top: 1.8em;
+}
+
+.post-content pre,
+.post-content div.highlight,
+.post-content .highlight {
+    border-radius: var(--fc-radius-inner);
+    overflow: hidden;
+}
+
+.post-content pre code {
+    border-radius: 0;
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+.post-content code {
+    border-radius: 6px;
+}
+
+.post-content img {
+    border-radius: var(--fc-radius-inner);
+}
+
+.post-content blockquote {
+    margin: 1.4em 0;
+    padding: 4px 18px;
+    border-inline-start: 3px solid var(--fc-accent);
+    border-radius: 0 var(--fc-radius-inner) var(--fc-radius-inner) 0;
+    background: var(--fc-accent-soft);
+}
+
+.post-content table {
+    border-radius: var(--fc-radius-inner);
+    overflow: hidden;
+}
+
+.post-tags a {
+    border-radius: var(--fc-radius-pill);
+    background: var(--fc-accent-soft);
+    border-color: rgba(15, 108, 189, 0.18);
+    color: var(--fc-accent);
+}
+
+.post-tags a:hover {
+    background: rgba(15, 108, 189, 0.18);
+}
+
+.paginav {
+    border-radius: var(--fc-radius-card);
+    background: var(--fc-glass-bg);
+    -webkit-backdrop-filter: var(--fc-blur);
+    backdrop-filter: var(--fc-blur);
+    border: 1px solid var(--fc-glass-stroke);
+}
+
+details.toc,
+[data-theme="dark"] details.toc {
+    background: var(--fc-accent-soft);
+    border: 1px solid var(--fc-glass-stroke);
+    border-radius: var(--fc-radius-inner);
+}
+
+/* ------------------------- 6b. 三栏布局（左导航 / 正文 / 右侧栏） */
+/* 正文阅读宽度固定 860px。带侧栏的页面（首页与列表页 —— 主题会给它们加 body.list）
+   的容器宽度 = 220 左导航 + 24 + 860 正文 + 24 + 320 右栏 = 1448px（border-box，
+   所以 max-width 要再加两侧 padding 48px = 1496px）。
+   ⚠️ 这里用的是 max-width：块级元素宽度默认仍是 auto（= 视口宽度），只在视口足够宽时
+   才被撑到 1496px。因此 1280px 视口下容器就是 1280px，不会被 max-width 顶出横向滚动条；
+   代价是 1280～1496px 之间正文列会略窄于 860px（详见 README 说明）。 */
+body.list {
+    --main-width: 1448px;
+}
+
+.fc-layout {
+    display: grid;
+    /* <1280px：左导航隐藏，维持原来的「内容 + 右侧栏」两栏 */
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 24px;
+    align-items: start;
+}
+
+/* 文章详情页：只有左导航 + 正文，没有右侧栏 */
+.fc-layout--article {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+/* 左导航默认不显示，>=1280px 才出现并升级成三栏 */
+.fc-nav {
+    display: none;
+}
+
+@media screen and (min-width: 1280px) {
+    .fc-layout {
+        grid-template-columns: 220px minmax(0, 1fr) 320px;
+    }
+
+    .fc-layout--article {
+        grid-template-columns: 220px minmax(0, 1fr);
+    }
+
+    .fc-nav {
+        display: block;
+        position: sticky;
+        top: calc(var(--header-height) + 16px);
+        min-width: 0;
+    }
+
+    /* 文章详情页容器同步加宽：220 左导航 + 24 + 860 正文（+ 两侧 padding） */
+    body:not(.list) .main,
+    body:not(.list) .footer {
+        max-width: calc(220px + var(--gap) + 860px + var(--gap) * 2);
+    }
+
+    /* 正文卡片最宽 860px：容器再宽也不拉长每行文字 */
+    .fc-article {
+        max-width: 860px;
+    }
+}
+
+.fc-main-col {
+    min-width: 0;
+}
+
+.fc-sidebar {
+    position: sticky;
+    /* 让开 sticky 页头（--header-height = 60px），否则滚上去会被页头压住 */
+    top: calc(var(--header-height) + 16px);
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+}
+
+/* 侧栏的两个卡片：与正文卡片同一套毛玻璃 + 圆角 */
+.fc-side-card {
+    padding: 20px;
+    background: var(--fc-glass-bg);
+    -webkit-backdrop-filter: var(--fc-blur);
+    backdrop-filter: var(--fc-blur);
+    border: 1px solid var(--fc-glass-stroke);
+    border-radius: var(--fc-radius-card);
+    box-shadow: var(--fc-shadow);
+}
+
+/* ① 个人信息卡 */
+.fc-side-profile {
+    text-align: center;
+}
+
+/* 圆形头像（80px），刻意区别于页头 / 首页作者卡的圆角方块 */
+.fc-side-avatar {
+    display: block;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--fc-avatar-stroke);
+    box-shadow: var(--fc-avatar-shadow);
+}
+
+.fc-side-name {
+    margin: 0 0 16px;
+    font-size: 19px;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.fc-side-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+}
+
+.fc-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 4px;
+    border-radius: var(--fc-radius-inner);
+    text-decoration: none;
+    transition: background 0.15s ease;
+}
+
+.fc-stat:hover {
+    background: var(--fc-accent-soft);
+}
+
+.fc-stat-num {
+    color: var(--fc-accent);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+
+.fc-stat-label {
+    color: var(--secondary);
+    font-size: 12.5px;
+}
+
+/* ② 最新文章卡 */
+.fc-side-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--fc-glass-stroke);
+    font-size: 15.5px;
+    font-weight: 600;
+}
+
+.fc-side-title svg {
+    flex: none;
+    width: 17px;
+    height: 17px;
+    color: var(--fc-accent);
+}
+
+.fc-latest {
+    display: flex;
+    flex-direction: column;
+}
+
+.fc-latest-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 -8px;
+    padding: 9px 8px;
+    border-radius: var(--fc-radius-inner);
+    text-decoration: none;
+    transition: background 0.15s ease;
+}
+
+.fc-latest-item + .fc-latest-item {
+    border-top: 1px solid var(--fc-glass-stroke);
+}
+
+.fc-latest-item:hover {
+    background: var(--fc-accent-soft);
+}
+
+.fc-latest-thumb {
+    flex: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    object-fit: cover;
+    border: 1px solid var(--fc-avatar-stroke);
+}
+
+/* 没有 cover 时的占位方块：用现有令牌取色的柔和渐变 + 标题首字，不会出现破图 */
+.fc-latest-thumb--ph {
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, var(--fc-accent-soft), rgba(15, 108, 189, 0.22));
+    color: var(--fc-accent);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+[data-theme="dark"] .fc-latest-thumb--ph {
+    background: linear-gradient(135deg, var(--fc-accent-soft), rgba(96, 205, 255, 0.22));
+}
+
+.fc-latest-body {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.fc-latest-title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    color: var(--primary);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.45;
+}
+
+.fc-latest-date {
+    color: var(--secondary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* 窄屏退化成单列：个人信息卡排到文章列表上方，最新文章卡排到最后。
+   用 display: contents 把侧栏「拆开」，让两张卡片直接参与外层 grid 排序。 */
+@media screen and (max-width: 1024px) {
+    body.list {
+        --main-width: 860px;
+    }
+
+    .fc-layout {
+        grid-template-columns: minmax(0, 1fr);
+        row-gap: 24px;
+    }
+
+    .fc-sidebar {
+        position: static;
+        display: contents;
+    }
+
+    .fc-side-profile {
+        order: 1;
+    }
+
+    .fc-main-col {
+        order: 2;
+    }
+
+    .fc-side-latest {
+        order: 3;
+    }
+}
+
+/* --------------------------------------- 6c. 左导航「目录树」样式 */
+.fc-nav-card {
+    padding: 12px;
+    background: var(--fc-glass-bg);
+    -webkit-backdrop-filter: var(--fc-blur);
+    backdrop-filter: var(--fc-blur);
+    border: 1px solid var(--fc-glass-stroke);
+    border-radius: var(--fc-radius-card);
+    box-shadow: var(--fc-shadow);
+    /* 分类变多、树变长时自己滚动，不会顶到视口外面去 */
+    max-height: calc(100vh - var(--header-height) - 36px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.fc-nav-tree,
+.fc-nav-groups,
+.fc-nav-leaves {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* 第二层：分类分组，用左侧细线表示层级 */
+.fc-nav-groups {
+    margin: 2px 0 4px 10px;
+    padding-left: 8px;
+    border-left: 1px solid var(--fc-glass-stroke);
+}
+
+.fc-nav-leaves {
+    margin: 2px 0 6px 4px;
+    padding-left: 10px;
+}
+
+.fc-nav-link,
+.fc-nav-summary,
+.fc-nav-leaf {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: var(--fc-radius-inner);
+    color: var(--secondary);
+    font-size: 13.5px;
+    line-height: 1.45;
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.fc-nav-link:hover,
+.fc-nav-summary:hover,
+.fc-nav-leaf:hover {
+    background: var(--fc-accent-soft);
+    color: var(--primary);
+}
+
+.fc-nav-icon {
+    flex: none;
+    width: 15px;
+    height: 15px;
+    opacity: 0.85;
+}
+
+/* 顶层项名字不加粗，靠图标 + 间距分层 */
+.fc-nav-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fc-nav-count {
+    color: var(--secondary);
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.9;
+}
+
+/* 折叠箭头：靠 CSS 旋转，<details open> 时转过 90° */
+.fc-nav-chevron {
+    flex: none;
+    width: 13px;
+    height: 13px;
+    margin-left: auto;
+    opacity: 0.55;
+    transition: transform 0.2s ease;
+}
+
+.fc-nav-group[open] > .fc-nav-summary .fc-nav-chevron {
+    transform: rotate(90deg);
+}
+
+/* 用原生 details/summary，去掉浏览器默认三角 */
+.fc-nav-group > .fc-nav-summary {
+    cursor: pointer;
+    list-style: none;
+}
+
+.fc-nav-group > .fc-nav-summary::-webkit-details-marker {
+    display: none;
+}
+
+.fc-nav-group > .fc-nav-summary::marker {
+    content: "";
+}
+
+/* 叶子项前面的小圆点 */
+.fc-nav-leaf::before {
+    content: "";
+    flex: none;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.45;
+}
+
+.fc-nav-leaf > span {
+    min-width: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+}
+
+/* 当前页高亮：强调色 + 加粗 + 左侧强调竖条 */
+.fc-nav-link.is-active,
+.fc-nav-leaf.is-active {
+    position: relative;
+    background: var(--fc-accent-soft);
+    color: var(--fc-accent);
+    font-weight: 600;
+}
+
+.fc-nav-link.is-active::after,
+.fc-nav-leaf.is-active::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 3px;
+    height: 16px;
+    margin-top: -8px;
+    border-radius: 0 3px 3px 0;
+    background: var(--fc-accent);
+}
+
+/* ------------------------------------- 7. 归档 / 标签 / 搜索 / 分页 / 页脚 */
+.archive-year {
+    margin-top: 26px;
+}
+
+.archive-year-header,
+.archive-month-header {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.archive-count {
+    color: var(--secondary);
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.archive-posts {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.archive-entry {
+    position: relative;
+    padding: 12px 18px;
+    background: var(--fc-glass-bg);
+    -webkit-backdrop-filter: var(--fc-blur);
+    backdrop-filter: var(--fc-blur);
+    border: 1px solid var(--fc-glass-stroke);
+    border-radius: var(--fc-radius-inner);
+    box-shadow: var(--fc-shadow);
+    transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.archive-entry:hover {
+    transform: translateY(-2px);
+    border-color: var(--fc-glass-stroke-hover);
+}
+
+.archive-entry-title {
+    margin: 0;
+    font-size: 16px;
+}
+
+.terms-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.terms-tags a {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: var(--fc-radius-pill);
+    background: var(--fc-glass-bg);
+    -webkit-backdrop-filter: var(--fc-blur);
+    backdrop-filter: var(--fc-blur);
+    border: 1px solid var(--fc-glass-stroke);
+    color: var(--primary);
+    font-size: 14px;
+    text-decoration: none;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.terms-tags a:hover {
+    transform: translateY(-2px);
+    border-color: var(--fc-glass-stroke-hover);
+}
+
+.searchbox {
+    border-radius: var(--fc-radius-card);
+}
+
+.searchbox input {
+    border-radius: var(--fc-radius-card);
+    background: var(--fc-glass-bg);
+    -webkit-backdrop-filter: var(--fc-blur);
+    backdrop-filter: var(--fc-blur);
+    border: 1px solid var(--fc-glass-stroke);
+}
+
+.searchResults {
+    border-radius: var(--fc-radius-inner);
+}
+
+.searchResults li {
+    border-radius: var(--fc-radius-inner);
+}
+
+/* 分页器 */
+.fc-pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 26px 0 10px;
+}
+
+.fc-pager-link {
+    display: inline-flex;
+    align-items: center;
+    height: 38px;
+    padding: 0 18px;
+    border-radius: var(--fc-radius-pill);
+    background: var(--fc-glass-bg);
+    -webkit-backdrop-filter: var(--fc-blur);
+    backdrop-filter: var(--fc-blur);
+    border: 1px solid var(--fc-glass-stroke);
+    color: var(--primary);
+    font-size: 14px;
+    text-decoration: none;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+a.fc-pager-link:hover {
+    transform: translateY(-2px);
+    border-color: var(--fc-glass-stroke-hover);
+}
+
+.fc-pager-link.is-disabled {
+    opacity: 0.45;
+}
+
+.fc-pager-info {
+    color: var(--secondary);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* 主题自带的「回到顶部」按钮 + 页脚 */
+.top-link {
+    border-radius: var(--fc-radius-pill);
+    background: var(--fc-glass-bg-strong);
+    -webkit-backdrop-filter: var(--fc-blur);
+    backdrop-filter: var(--fc-blur);
+    border: 1px solid var(--fc-glass-stroke);
+    color: var(--primary);
+}
+
+.footer {
+    color: var(--secondary);
+}
+
+/* ----------------------------------------------------------- 8. B 站视频 */
+.fc-video-wrap {
+    margin: 26px 0;
+}
+
+.fc-video {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--fc-radius-card);
+    overflow: hidden;
+    background: #000;
+    border: 1px solid var(--fc-glass-stroke);
+    box-shadow: var(--fc-shadow);
+}
+
+.fc-video iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+.fc-video-caption {
+    margin-top: 10px;
+    color: var(--secondary);
+    font-size: 13px;
+    text-align: center;
+}
+
+/* ------------------------------------------------------------- 9. 响应式 */
+@media screen and (max-width: 768px) {
+    .header-nav {
+        flex-wrap: wrap;
+        row-gap: 8px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+
+    .logo {
+        flex: 1 1 auto;
+    }
+
+    /* 手机上导航整行横向滚动，不换行不挤压 */
+    .fc-segmented {
+        order: 3;
+        width: 100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+    }
+
+    .fc-segmented a,
+    .fc-segmented a span {
+        height: 32px;
+        padding: 0 13px;
+        font-size: 13.5px;
+    }
+
+    .fc-brand-text {
+        font-size: 15px;
+    }
+
+    /* 卡片单列时收紧内边距（卡片本体没有 padding，内边距在 body 上） */
+    .fc-cards {
+        gap: 14px;
+    }
+
+    .fc-card-body {
+        padding: 14px 16px 16px;
+    }
+
+    .fc-card-head {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .fc-hero {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 20px;
+        text-align: left;
+    }
+
+    .fc-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 18px;
+    }
+
+    .fc-hero-title {
+        font-size: 22px;
+    }
+
+    .fc-article,
+    .fc-page-head {
+        padding: 20px 18px;
+    }
+
+    .post-title {
+        font-size: 27px;
+    }
+
+    .fc-pager {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    :root {
+        --fc-radius-card: 12px;
+    }
+
+    .fc-brand-text {
+        display: none;
+    }
+
+    .post-content {
+        font-size: 16px;
+    }
+}
+
+/* ------------------- 10. 主题切换的「圆形扩散」过渡（View Transitions） */
+/* 由 assets/js/theme-transition.js 驱动：点击 #theme-toggle 时把切换逻辑包进
+   document.startViewTransition()，并把圆心 / 半径写进
+   --fc-vt-x / --fc-vt-y / --fc-vt-r（写在 <html> 上，会被 ::view-transition-*
+   继承）。这里让「新主题」那层从一个点扩散到盖住整个视口。 */
+
+/* 关掉浏览器默认的交叉淡入淡出，两层都用正常混合 */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
+/* 新主题在上层（伪元素树里后出现的画在上面）：从圆心扩散到最远角。
+   浅 → 深、深 → 浅都是同一套机制，方向自动正确。 */
+::view-transition-new(root) {
+    clip-path: circle(0 at var(--fc-vt-x, 50%) var(--fc-vt-y, 50%));
+    animation: fc-theme-circle 500ms ease-out both;
+}
+
+@keyframes fc-theme-circle {
+    from {
+        clip-path: circle(0 at var(--fc-vt-x, 50%) var(--fc-vt-y, 50%));
+    }
+
+    to {
+        clip-path: circle(var(--fc-vt-r, 150vmax) at var(--fc-vt-x, 50%) var(--fc-vt-y, 50%));
+    }
+}
+
+/* 兜底：JS 在减少动效时已经直接跳过过渡，这里保证万一面板状态变化导致
+   过渡仍然发生，也不会把新主题裁成看不见。 */
+@media (prefers-reduced-motion: reduce) {
+
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation: none !important;
+    }
+
+    ::view-transition-new(root) {
+        clip-path: none !important;
+    }
+}
+
+/* 尊重「减少动态效果」偏好：关掉整站的位移与过渡动画 */
+@media (prefers-reduced-motion: reduce) {
+
+    .fc-card,
+    .archive-entry,
+    .terms-tags a,
+    .fc-pager-link,
+    .fc-card-cover img,
+    .fc-nav-chevron {
+        transition: none;
+    }
+
+    .fc-card:hover,
+    .fc-card:focus-within,
+    .archive-entry:hover,
+    .terms-tags a:hover,
+    a.fc-pager-link:hover {
+        transform: none;
+    }
+
+    .fc-card:hover .fc-card-cover img,
+    .fc-card:focus-within .fc-card-cover img {
+        transform: none;
+    }
+}

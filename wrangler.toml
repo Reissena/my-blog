@@ -1,0 +1,7 @@
+﻿# Cloudflare Worker 配置（纯静态资源站点，无 Worker 脚本）
+# 构建产物由 Hugo 生成在 ./public
+name = "my-blog"
+compatibility_date = "2026-10-09"
+
+[assets]
+directory = "./public"

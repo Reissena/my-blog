@@ -1,0 +1,63 @@
+{{- /* =====================================================================
+    右侧栏 ②：最新文章卡
+    ---------------------------------------------------------------------
+    · 取最新 5 篇并排除当前页面（在文章页也能安全复用）
+    · 只取 mainSections（posts）里的文章：site.RegularPages 会连
+      content/search.md、content/archives.md 这类功能页一起算进来，
+      它们没有日期，会渲染出 0001-01-01
+    · 每项：左侧 48px 小圆角缩略图 + 右侧两行（标题最多两行、超出省略，下面是灰色小号日期）
+    · 缩略图优先用 front matter 的 cover，两种写法都兼容：
+        cover: "/images/x.jpg"           （字符串）
+        cover: { image: "/images/x.jpg" }（对象，PaperMod / Pages CMS 的写法）
+      没有 cover 时不输出 <img>，改用纯 CSS 渐变占位方块（取标题首字），
+      所以绝不会出现破图
+   ===================================================================== */ -}}
+{{- $current := .RelPermalink -}}
+{{- $latest := slice -}}
+{{- range (where site.RegularPages "Type" "in" site.Params.mainSections).ByDate.Reverse -}}
+    {{- if and (ne .RelPermalink $current) (lt (len $latest) 5) -}}
+        {{- $latest = $latest | append . -}}
+    {{- end -}}
+{{- end -}}
+{{- with $latest }}
+<section class="fc-side-card fc-side-latest">
+    <h2 class="fc-side-title">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 7v5l3 2"></path>
+        </svg>
+        最新文章
+    </h2>
+    <div class="fc-latest">
+        {{- range . }}
+        {{- $cover := "" -}}
+        {{- with .Params.cover -}}
+            {{- if reflect.IsMap . -}}{{- $cover = .image | default "" -}}{{- else -}}{{- $cover = . -}}{{- end -}}
+        {{- end -}}
+        {{- $src := "" -}}
+        {{- with $cover -}}
+            {{- if or (hasPrefix . "http://") (hasPrefix . "https://") -}}
+                {{- $src = . -}}
+            {{- else -}}
+                {{- $src = printf "%s%s" site.Home.RelPermalink (strings.TrimPrefix "/" .) -}}
+            {{- end -}}
+        {{- end -}}
+        <a class="fc-latest-item" href="{{ .RelPermalink }}">
+            {{- if $src }}
+            <img class="fc-latest-thumb" src="{{ $src }}" alt="{{ .Title }}" width="48" height="48"
+                loading="lazy" decoding="async">
+            {{- else }}
+            <span class="fc-latest-thumb fc-latest-thumb--ph" aria-hidden="true">{{ substr .Title 0 1 }}</span>
+            {{- end }}
+            <span class="fc-latest-body">
+                <span class="fc-latest-title">{{ .Title }}</span>
+                {{- if not .Date.IsZero }}
+                <time class="fc-latest-date" datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date | time.Format (site.Params.DateFormat | default "2006-01-02") }}</time>
+                {{- end }}
+            </span>
+        </a>
+        {{- end }}
+    </div>
+</section>
+{{- end }}

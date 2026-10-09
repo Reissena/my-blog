@@ -1,11 +1,14 @@
 # ============================================================
 # Hugo 站点配置 —— PaperMod 主题 / 中文站点
-# 部署后请把 baseURL 改成你的真实域名（或 Cloudflare Pages 分配的域名）
+# 站点：浮华YUN的博客
 # ============================================================
 
-# TODO: 上线后改成正式域名，例如 "https://blog.example.com/"
-baseURL = "https://example.com/"
-title = "我的个人博客"
+# 生产环境地址（结尾必须带斜杠）。
+# 目前指向 Cloudflare 上的部署地址；绑定自定义域名后改成
+#   baseURL = "https://blog.你的域名.com/"
+# 改了以后记得重新构建，否则 canonical / sitemap / RSS 里的链接还是旧域名。
+baseURL = "https://yunblog.com.cn/"
+title = "浮华YUN的博客"
 theme = "PaperMod"
 
 # 中文相关（Hugo 0.158+ 用 locale 取代 languageCode）
@@ -14,6 +17,9 @@ defaultContentLanguage = "zh"
 hasCJKLanguage = true
 enableEmoji = true
 enableRobotsTXT = true
+
+# 首页/归档只列 posts 栏目：不显式指定的话，Hugo 会把「页数最多的栏目」当成主栏目。
+mainSections = ["posts"]
 
 # 分页（Hugo 0.128+ 的新写法，旧的 paginate 已废弃）
 [pagination]
@@ -32,9 +38,9 @@ enableRobotsTXT = true
 
 [params]
   env = "production"
-  description = "记录技术笔记与生活随笔的个人博客"
-  keywords = ["博客", "Hugo", "PaperMod", "技术笔记"]
-  author = "博主"
+  description = "浮华YUN的博客：记录技术笔记、折腾过程与生活随笔。"
+  keywords = ["浮华YUN", "博客", "Hugo", "PaperMod", "技术笔记"]
+  author = "浮华YUN"
 
   DateFormat = "2006-01-02"
   defaultTheme = "auto"
@@ -43,7 +49,7 @@ enableRobotsTXT = true
   # 文章页显示项
   ShowReadingTime = true
   ShowWordCount = true
-  ShowShareButtons = true
+  ShowShareButtons = false
   ShowPostNavLinks = true
   ShowBreadCrumbs = true
   ShowCodeCopyButtons = true
@@ -54,13 +60,10 @@ enableRobotsTXT = true
 
   # 首页简介
   [params.homeInfoParams]
-    Title = "你好，欢迎来到我的博客 👋"
-    Content = "这里记录我的技术笔记、折腾过程和生活随笔。"
+    Title = "浮华YUN的博客"
+    Content = "你好，我是浮华YUN 👋 这里记录我的技术笔记、折腾过程和生活随笔。"
 
-  # 社交图标（把 url 换成你自己的）
-  [[params.socialIcons]]
-    name = "github"
-    url = "https://github.com/yourname"
+  # 社交图标（想加 GitHub / 邮箱等，按下面的格式追加即可；url 记得换成你自己的）
   [[params.socialIcons]]
     name = "rss"
     url = "index.xml"
@@ -69,9 +72,11 @@ enableRobotsTXT = true
 # 登录模块（前端门禁式，实现见 layouts/ + assets/js/auth.js）
 # 完整说明与安全边界见 DEPLOY.md
 #   1) 口令以 PBKDF2-SHA256 加盐哈希保存，配置里没有明文；
-#   2) 换密码：node tools/hash-password.mjs --user member
-#      然后把输出的 salt / hash / iterations 替换掉即可；
-#   3) enabled = false 可一键关掉页头入口与门禁跳转。
+#   2) 换密码 / 加账号：node tools/hash-password.mjs --user 用户名 --role member
+#      然后把输出的 salt / hash / iterations 加进来即可（可多个账号）；
+#   3) 访客走 /register/ 生成申请码，站长把 [[params.auth.users]] 片段粘到
+#      这里即可开通 —— 纯静态站无法自助开户，属于「申请制」；
+#   4) enabled = false 可一键关掉页头入口与门禁跳转。
 # ============================================================
 [params.auth]
   enabled = true
@@ -80,25 +85,42 @@ enableRobotsTXT = true
   maxAttempts = 5           # 连续输错几次后进入冷却
   cooldownMs = 5000         # 冷却时长（毫秒）
   loginPath = "login/"      # 登录页路径（相对站点根，会自动拼上 baseURL 的子路径）
-  membersPath = "private/"  # 会员栏目路径
+  registerPath = "register/" # 注册申请页路径
+  membersPath = "private/"  # 会员栏目路径，对应 content/private/
+  defaultIterations = 150000 # 注册页生成哈希时用的迭代次数
 
-# 测试账号 ①：member / papermod123
+# ------------------------------------------------------------
+# 用户列表：username / displayName / role / salt / hash / iterations
+#   role 目前用于 role-gated 页面：front matter 里写 role = "admin"
+#   的页面只有 admin 能进（member 会被弹回登录页并提示权限不足）。
+#   role 只是「约定」，前端门禁终究挡不住改 localStorage 的人，见 DEPLOY.md。
+# ------------------------------------------------------------
+
+# 会员账号
+#   （密码不在配置里，只有 PBKDF2 哈希；换密码见 DEPLOY.md §8.1）
 [[params.auth.users]]
   username = "member"
   displayName = "会员读者"
-  salt = "30c9f894189e8cd23d3534b9a887aa36"
-  hash = "21e6cdd6f69376ec51a44a3f709f6455fe5265342adee72d3ac05503c8694cdd"
+  role = "member"
+  salt = "e4240372fd909d9b60e3a4f80ce0586a"
+  hash = "fd5f5652fd2296ceb700ac3b8a3f1d7ec74c2e87ef47261650c06e872abeb322"
   iterations = 150000
 
-# 测试账号 ②：admin / admin@2026
+# 管理员账号
 [[params.auth.users]]
   username = "admin"
   displayName = "站长"
-  salt = "d302732b3843682751f6d39aae70e9ed"
-  hash = "f490c5dcc4f64993e88517d76247e24acb5a7989051974fc5e8c71e8315e6f09"
+  role = "admin"
+  salt = "2980399bc09de4b301b6a1537ecb627b"
+  hash = "fb48a44d5ce44e4ba2f815196a37443375df05f2900d0a5eed5ab0fa21b9422a"
   iterations = 150000
 
 [menu]
+  [[menu.main]]
+    identifier = "home"
+    name = "首页"
+    url = "/"
+    weight = 5
   [[menu.main]]
     identifier = "posts"
     name = "文章"

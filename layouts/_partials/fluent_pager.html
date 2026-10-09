@@ -1,0 +1,17 @@
+{{- /* 分页器（首页 / 列表页共用）
+       参数：一个 Paginator（用 {{ partial "fluent_pager.html" $paginator }} 调用） */ -}}
+{{- if gt .TotalPages 1 }}
+<nav class="fc-pager" aria-label="分页导航">
+    {{- if .HasPrev }}
+    <a class="fc-pager-link prev" href="{{ .Prev.URL | absURL }}">← 上一页</a>
+    {{- else }}
+    <span class="fc-pager-link is-disabled">← 上一页</span>
+    {{- end }}
+    <span class="fc-pager-info">{{ .PageNumber }} / {{ .TotalPages }}</span>
+    {{- if .HasNext }}
+    <a class="fc-pager-link next" href="{{ .Next.URL | absURL }}">下一页 →</a>
+    {{- else }}
+    <span class="fc-pager-link is-disabled">下一页 →</span>
+    {{- end }}
+</nav>
+{{- end }}
