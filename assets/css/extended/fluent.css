@@ -2033,6 +2033,24 @@ body.fc-has-player .fc-mini {
    两者根本不会被创建（这里的 display:none 只是兜底）。
    canvas 的 z-index = 55：高于页头(50)与卡片内容，低于右下角迷你播放条(60)，
    所以花瓣不会盖住播放控件。 */
+
+/* 花瓣配色（JS 用 getComputedStyle 读这几个变量，所以调色只改这一处，不用碰 JS）：
+   值是空格分隔的 RGB 通道，同一粉色系里四档浓淡；深色模式单独给一套，
+   保证两种主题下都看得清。 */
+:root {
+    --fc-sakura-1: 255 199 214;   /* 淡粉（主） */
+    --fc-sakura-2: 253 221 231;   /* 浅粉 */
+    --fc-sakura-3: 247 168 192;   /* 稍深的粉 */
+    --fc-sakura-4: 254 233 239;   /* 近白粉 */
+}
+
+[data-theme="dark"] {
+    --fc-sakura-1: 255 190 209;
+    --fc-sakura-2: 252 214 227;
+    --fc-sakura-3: 244 156 184;
+    --fc-sakura-4: 252 226 234;
+}
+
 .fc-sakura {
     position: fixed;
     inset: 0;

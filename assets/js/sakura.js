@@ -30,12 +30,25 @@
     var DPR_MAX = 2;
     var SPRITE = 64;                                   // 精灵图边长（设备像素）
 
-    var COLORS = [
-        [255, 214, 224],   // 淡粉
-        [255, 236, 241],   // 近白
-        [255, 190, 208],   // 稍深一点的粉
-        [255, 246, 249]    // 更淡
-    ];
+    /* 花瓣配色：从 CSS 变量读（fluent.css 第 13 节的 --fc-sakura-1..4），
+       颜色统一在主题层维护，JS 不再硬编码色值；万一读不到就用下面这份兜底
+       （同一粉色系，深色模式另有一套，见那条 [data-theme="dark"] 规则）。 */
+    var VAR_NAMES = ['--fc-sakura-1', '--fc-sakura-2', '--fc-sakura-3', '--fc-sakura-4'];
+    var FALLBACK = [[255, 199, 214], [253, 221, 231], [247, 168, 192], [254, 233, 239]];
+
+    function readColors() {
+        var cs = window.getComputedStyle ? window.getComputedStyle(document.documentElement) : null;
+        var out = [];
+        for (var i = 0; i < VAR_NAMES.length; i++) {
+            var parts = cs ? String(cs.getPropertyValue(VAR_NAMES[i])).trim().split(/[\s,]+/) : [];
+            if (parts.length >= 3 && parts[0] !== '') {
+                out.push([parseInt(parts[0], 10) || 0, parseInt(parts[1], 10) || 0, parseInt(parts[2], 10) || 0]);
+            } else {
+                out.push(FALLBACK[i]);
+            }
+        }
+        return out;
+    }
 
     var ICON = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
         '<ellipse cx="12" cy="6.6" rx="3" ry="4.2"/>' +
@@ -73,11 +86,22 @@
     }
 
     var SPRITES = [];
-    (function () {
+    function buildSprites() {
+        var colors = readColors();
+        SPRITES = [];
         for (var shape = 0; shape < 3; shape++) {
-            for (var i = 0; i < COLORS.length; i++) { SPRITES.push(makeSprite(shape, COLORS[i])); }
+            for (var i = 0; i < colors.length; i++) { SPRITES.push(makeSprite(shape, colors[i])); }
         }
-    })();
+    }
+    buildSprites();
+
+    // 主题切换后按新主题的变量重建精灵图（深浅两套粉色略有差别）；
+    // 数量固定 3×4，所以已经飞着的花瓣用旧索引照样取得到，不会出错
+    if (window.MutationObserver) {
+        new MutationObserver(buildSprites).observe(document.documentElement, {
+            attributes: true, attributeFilter: ['data-theme']
+        });
+    }
 
     /* --------------------------------------------------------------- 视图状态 */
     var view = { w: 0, h: 0, dpr: 1, ctx: null, wind: 5 };
@@ -102,14 +126,14 @@
         p.baseX = Math.random() * w;
         p.x = p.baseX;
         p.y = atTop ? (-20 - Math.random() * h * 0.4) : (Math.random() * h);
-        p.size = 6 + Math.random() * 9;                       // 6–15 CSS px
+        p.size = 9 + Math.random() * 12;                      // 9–21 CSS px（比初版 6–15 大约 1.4 倍）
         p.vy = 12 + Math.random() * 26;                       // 下落 12–38 px/s
         p.amp = 10 + Math.random() * 34;                      // 摇摆幅度
         p.phase = Math.random() * Math.PI * 2;                // 摇摆相位各自随机
         p.wave = 0.35 + Math.random() * 0.75;                 // 摇摆角速度
         p.rot = Math.random() * Math.PI * 2;
         p.spin = (Math.random() - 0.5) * 0.9;                 // 自转
-        p.alpha = 0.35 + Math.random() * 0.42;                // 整体偏轻
+        p.alpha = 0.64 + Math.random() * 0.11;                // 0.64–0.75（比初版明显，但单篇封顶 0.75 不发闷）
         p.sprite = (Math.random() * SPRITES.length) | 0;
     }
 
