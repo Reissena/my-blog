@@ -8,7 +8,7 @@ tags:
   - 开始
 summary: 博客的第一篇文章：记录这个站点是怎么搭起来的。
 cover:
-  image: /images/564834513b3f14775fb6dd896591c782.jpg
+  image: /images/564834513b3f14775fb6dd896591c782-1.jpg
 ---
 欢迎来到我的个人博客！这是第一篇文章，用来验证 Hugo + PaperMod 的构建和渲染是否正常。
 
