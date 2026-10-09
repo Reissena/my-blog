@@ -84,6 +84,20 @@
                             <path d="M9.9 16.3c1.3.95 2.9.95 4.2 0" />
                         </svg>
                     </a>
+                    {{- /* 网易云音乐主页：同样是「点进去看的个人主页」，所以排在 B 站右边。
+                           注意 href 里的 #/user/home?id=… 是网易云的路由本体（在 hash 里），
+                           不能删、不能转义、不能加别的参数，否则会跳到它自己的首页而不是用户主页。 */ -}}
+                    <a href="https://music.163.com/#/user/home?id=1374078630" target="_blank" rel="noopener noreferrer"
+                        aria-label="网易云音乐主页" title="浮华Yun 的网易云音乐">
+                        {{- /* 唱片 + 音符：外圈唱片、内圈纹路、中间一个音符（单色描边，和整排其它图标一致） */ -}}
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9.1" />
+                            <circle cx="12" cy="12" r="6.4" />
+                            <path d="M13.9 7.6v6.7" />
+                            <circle cx="12.1" cy="14.5" r="1.75" />
+                        </svg>
+                    </a>
                     <button type="button" data-copy="3307590541" data-copy-done="已复制 QQ 号" aria-label="复制 QQ 号"
                         title="复制 QQ 号：3307590541">
                         {{- /* 企鹅轮廓：圆头 + 两只白眼 + 小嘴 + 两侧短鳍（纯色填充，和 GitHub 那个同一路数） */ -}}
