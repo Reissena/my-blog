@@ -1,7 +1,9 @@
 {{- /* =====================================================================
     右侧栏 ②：最新文章卡
     ---------------------------------------------------------------------
-    · 取最新 5 篇并排除当前页面（在文章页也能安全复用）
+    · 取最新 3 篇并排除当前页面（在文章页也能安全复用）。用 .ByDate.Reverse 纯按日期
+      取，**不看 pinned 置顶** —— 侧栏叫「最新文章」，语义就是日期序；首页主区域的
+      「文章」列表才需要把置顶排到最前，两者互不影响。文章不足 3 篇就有几篇显示几篇
     · 只取 mainSections（posts）里的文章：site.RegularPages 会连
       content/search.md、content/archives.md 这类功能页一起算进来，
       它们没有日期，会渲染出 0001-01-01
@@ -15,7 +17,7 @@
 {{- $current := .RelPermalink -}}
 {{- $latest := slice -}}
 {{- range (where site.RegularPages "Type" "in" site.Params.mainSections).ByDate.Reverse -}}
-    {{- if and (ne .RelPermalink $current) (lt (len $latest) 5) -}}
+    {{- if and (ne .RelPermalink $current) (lt (len $latest) 3) -}}
         {{- $latest = $latest | append . -}}
     {{- end -}}
 {{- end -}}
