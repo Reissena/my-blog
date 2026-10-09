@@ -11,8 +11,8 @@ tags:
   - 建站
 summary: 折腾了几天，这个站算是能见人了。写一篇记录一下用了什么、怎么用。
 cover:
-  image: /images/site-v1-launch-cover.jpg
-  alt: 深色夜景背景上写着「本站初版完工」的封面图
+  image: /images/posts/site-v1-launch.jpg
+  alt: 本站初版完工 封面图
 ---
 折腾了几天，这个站算是能见人了。写一篇记录一下用了什么、怎么用。
 
