@@ -24,28 +24,8 @@
 
     <div class="fc-music-layout">
         <div class="fc-music-left">
+            {{- /* 左栏只有播放器大卡：曲子列表在底部「目录」里，同一页不出现两个重复列表 */ -}}
             {{- partial "music_player.html" . }}
-
-            {{- /* 播放列表：点一首就切歌（交给播放器的 load()，不新建播放器） */ -}}
-            <section class="fc-playlist fc-glass">
-                <h2 class="fc-playlist-title">播放列表</h2>
-                <ol class="fc-playlist-items" id="fc-playlist">
-                    {{- range $i, $t := $music }}
-                    <li>
-                        <button type="button" class="fc-playlist-item{{ if eq $i 0 }} is-current{{ end }}"
-                            data-track="{{ $i }}" aria-label="播放 {{ $t.title }}{{ if eq $i 0 }}（当前）{{ end }}">
-                            <img class="fc-playlist-cover" src="{{ partial "music_url.html" $t.cover }}" alt=""
-                                width="44" height="44" loading="lazy" decoding="async">
-                            <span class="fc-playlist-text">
-                                <span class="fc-playlist-name">{{ $t.title }}</span>
-                                <span class="fc-playlist-artist">{{ $t.artist }}</span>
-                            </span>
-                            <span class="fc-playlist-idx" aria-hidden="true">{{ add $i 1 }}</span>
-                        </button>
-                    </li>
-                    {{- end }}
-                </ol>
-            </section>
         </div>
 
         <div class="fc-music-right">
@@ -60,6 +40,38 @@
                 </div>
             </section>
         </div>
+
+        {{- /* 底部整宽「目录」（替代参考页那个乐迷留言板的位置，我们不做留言板）。
+               它就是播放列表本体：id 仍是 #fc-playlist，所以播放器脚本照旧绑定、
+               点击即切歌、当前曲目高亮；只是从左侧移到了底部、并补上时长与播放状态。
+               DOM 顺序放在最后 → 窄屏堆叠顺序自然是「播放器 → 歌词 → 目录」。 */ -}}
+        <section class="fc-catalog fc-glass" aria-labelledby="fc-catalog-title">
+            <div class="fc-catalog-head">
+                <h2 class="fc-catalog-title" id="fc-catalog-title">目录</h2>
+                <span class="fc-catalog-hint">点任意一首即可切换播放</span>
+            </div>
+            <ol class="fc-catalog-items" id="fc-playlist">
+                {{- range $i, $t := $music }}
+                <li>
+                    <button type="button" class="fc-catalog-item{{ if eq $i 0 }} is-current{{ end }}"
+                        data-track="{{ $i }}" aria-label="播放 {{ $t.title }}">
+                        <img class="fc-catalog-cover" src="{{ partial "music_url.html" $t.cover }}" alt=""
+                            width="48" height="48" loading="lazy" decoding="async">
+                        <span class="fc-catalog-text">
+                            <span class="fc-catalog-name">{{ $t.title }}</span>
+                            <span class="fc-catalog-artist">{{ $t.artist }}</span>
+                        </span>
+                        <span class="fc-catalog-meta">
+                            {{- with $t.duration }}
+                            <span class="fc-catalog-time">{{ printf "%d:%02d" (div . 60) (mod . 60) }}</span>
+                            {{- end }}
+                            <span class="fc-catalog-state" data-state hidden></span>
+                        </span>
+                    </button>
+                </li>
+                {{- end }}
+            </ol>
+        </section>
     </div>
 </div>
 {{- end }}{{/* end main */}}

@@ -10,6 +10,7 @@
   cover: "/music/covers/01-kachou-fuugetsu.jpg"
   lyrics: "/music/lyrics/01-kachou-fuugetsu.lrc"
   instrumental: false
+  duration: 347
   credits:
     - role: "作词"
       name: "かませ虎"
@@ -27,6 +28,7 @@
   cover: "/music/covers/02-again.jpg"
   lyrics: "/music/lyrics/02-again.lrc"
   instrumental: false
+  duration: 227
   credits:
     - role: "作词"
       name: "Renko"
@@ -42,6 +44,7 @@
   cover: "/music/covers/03-ray-of-light.jpg"
   lyrics: "/music/lyrics/03-ray-of-light.lrc"
   instrumental: false
+  duration: 223
   credits: []
 
 - id: "04-hakugyokurou-kaidan"
@@ -51,6 +54,7 @@
   cover: "/music/covers/04-hakugyokurou-kaidan.jpg"
   lyrics: "/music/lyrics/04-hakugyokurou-kaidan.lrc"
   instrumental: true
+  duration: 345
   credits:
     - role: "作曲"
       name: "ZUN"
@@ -62,6 +66,7 @@
   cover: "/music/covers/05-song-for-two.jpg"
   lyrics: ""
   instrumental: false
+  duration: 237
   credits: []
 
 - id: "06-city-escape-plan"
@@ -71,6 +76,7 @@
   cover: "/music/covers/06-city-escape-plan.jpg"
   lyrics: "/music/lyrics/06-city-escape-plan.lrc"
   instrumental: true
+  duration: 180
   credits:
     - role: "作曲"
       name: "曲扬"

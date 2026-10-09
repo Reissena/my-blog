@@ -267,6 +267,75 @@ def parse_lrc(path):
     return credits, lyrics, instrumental, {"lines": len(lyrics), "pairs": pairs, "skipped": skipped}
 
 
+# --------------------------------------------------------------------------- 时长
+# MPEG 帧头里的比特率表（Layer III）：索引 0 = free，15 = 保留，其余见下
+_BITRATE_V1L3 = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0]
+_BITRATE_V2L3 = [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0]
+_SAMPLERATE = {"1": [44100, 48000, 32000], "2": [22050, 24000, 16000], "25": [11025, 12000, 8000]}
+_SAMPLES_PER_FRAME = {"1": 1152, "2": 576, "25": 576}
+
+
+def mp3_duration(path):
+    """数一遍 MPEG 帧算时长（CBR/VBR 都准），返回秒数（float）或 None。
+
+    本机没有 mutagen / ffmpeg，所以手写：跳过 ID3v2 → 逐帧读帧头 → 按
+    每帧采样数累加 → 除以采样率。遇到非法字节就往后挪一位重新找同步字，
+    所以夹了垃圾数据也不会直接崩。
+    """
+    try:
+        with open(path, "rb") as f:
+            data = f.read()
+    except OSError:
+        return None
+
+    i = 0
+    if data[:3] == b"ID3" and len(data) > 10:                     # 跳过 ID3v2
+        size = ((data[6] & 0x7F) << 21) | ((data[7] & 0x7F) << 14) | \
+               ((data[8] & 0x7F) << 7) | (data[9] & 0x7F)
+        i = 10 + size
+
+    n = len(data)
+    total, rate, frames = 0, 0, 0
+    while i < n - 4:
+        if data[i] != 0xFF or (data[i + 1] & 0xE0) != 0xE0:
+            i += 1
+            continue
+        ver_bits = (data[i + 1] >> 3) & 0x03
+        layer_bits = (data[i + 1] >> 1) & 0x03
+        if ver_bits == 1 or layer_bits != 1:                      # 只要 Layer III
+            i += 1
+            continue
+        br_idx = (data[i + 2] >> 4) & 0x0F
+        sr_idx = (data[i + 2] >> 2) & 0x03
+        padding = (data[i + 2] >> 1) & 0x01
+        if br_idx in (0, 15) or sr_idx == 3:
+            i += 1
+            continue
+        ver = {3: "1", 2: "2", 0: "25"}[ver_bits]
+        br = (_BITRATE_V1L3 if ver == "1" else _BITRATE_V2L3)[br_idx] * 1000
+        sr = _SAMPLERATE[ver][sr_idx]
+        spf = _SAMPLES_PER_FRAME[ver]
+        frame_len = (spf // 8) * br // sr + padding
+        if frame_len <= 4:
+            i += 1
+            continue
+        total += spf
+        rate = sr
+        frames += 1
+        i += frame_len
+    if not rate or not frames:
+        return None
+    return total / float(rate)
+
+
+def fmt_duration(seconds):
+    """秒 → mm:ss（没算出来就返回空串，模板里会跳过）"""
+    if not seconds:
+        return ""
+    s = int(round(seconds))
+    return "%d:%02d" % (s // 60, s % 60)
+
+
 # --------------------------------------------------------------------------- YAML
 # 展示顺序：作词 → 作曲 → 编曲 → 制作人 → 其它
 ROLE_ORDER = ["作词", "作曲", "编曲", "制作人"]
@@ -317,7 +386,7 @@ def read_existing_yaml(path):
                     in_credits = False
                     continue
                 in_credits = False
-            m = re.match(r"^\s+(title|artist|file|cover|lyrics|instrumental):\s*(.*)$", line)
+            m = re.match(r"^\s+(title|artist|file|cover|lyrics|instrumental|duration):\s*(.*)$", line)
             if m:
                 keep[cur][m.group(1)] = m.group(2).strip().strip('"')
     return keep
@@ -401,11 +470,23 @@ def main():
         else:
             credits_lines = None
 
+        # 4) 时长：源在就现算（数 MPEG 帧，CBR/VBR 都准）；源不在了沿用现有值
+        dur = 0
+        if have_src:
+            secs = mp3_duration(src)
+            if secs:
+                dur = int(round(secs))
+        if not dur:
+            try:
+                dur = int(prev.get("duration") or 0)
+            except (TypeError, ValueError):
+                dur = 0
+
         rows.append(dict(
             id=t["id"], title=title, artist=artist,
             file="%s/%s.mp3" % (R2_BASE, t["id"]), cover=cover_url, lyrics=lyrics_url,
             instrumental=instrumental, credits=credits, credits_lines=credits_lines,
-            size=size, cover_note=cover_note, n_lines=n_lines,
+            duration=dur, size=size, cover_note=cover_note, n_lines=n_lines,
             n_pairs=n_pairs,
         ))
 
@@ -425,6 +506,7 @@ def main():
         out.append("  cover: %s" % yq(r["cover"]))
         out.append("  lyrics: %s" % yq(r["lyrics"]))
         out.append("  instrumental: %s" % ("true" if r["instrumental"] else "false"))
+        out.append("  duration: %d" % r["duration"])
         if r["credits"]:
             out.append("  credits:")
             for role, name in r["credits"]:
@@ -444,9 +526,10 @@ def main():
     print("%-24s %-34s %-18s %s" % ("id", "title", "artist", "素材"))
     print("-" * 78)
     for r in rows:
-        print("%-24s %-34s %-18s mp3 %s | %s | 歌词 %d 行（双语成对 %d）%s" % (
+        print("%-24s %-34s %-18s mp3 %s | %s | %s | 歌词 %d 行（双语成对 %d）%s" % (
             r["id"], r["title"][:32], r["artist"][:16],
             ("%.1f MB（本地）" % (r["size"] / 1048576.0)) if r["size"] else "→ R2",
+            fmt_duration(r["duration"]) or "时长未知",
             r["cover_note"], r["n_lines"], r["n_pairs"],
             " | 纯音乐" if r["instrumental"] else ""))
         if r["credits"]:

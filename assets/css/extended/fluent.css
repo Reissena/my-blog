@@ -2661,9 +2661,14 @@ body.fc-has-mini .fc-statusbar-wrap {
     text-align: center;
 }
 
+/* 本页封面更大（左栏去掉列表后空间富余），只在本页生效 */
 .fc-music-layout .fc-player-cover-wrap {
-    width: 200px;
-    height: 200px;
+    width: 240px;
+    height: 240px;
+}
+
+.fc-music-layout .fc-player {
+    padding-bottom: 20px;
 }
 
 .fc-music-layout .fc-player-info {
@@ -2675,38 +2680,49 @@ body.fc-has-mini .fc-statusbar-wrap {
     font-size: 22px;
 }
 
-/* 播放列表 */
-.fc-playlist {
-    padding: 16px 16px 12px;
+/* 底部整宽「目录」（就是播放列表本体，id 仍是 #fc-playlist） */
+.fc-catalog {
+    grid-column: 1 / -1;   /* 横跨上面两栏 = 整宽；DOM 在最后 → 窄屏堆叠顺序为 播放器→歌词→目录 */
+    padding: 16px 18px 18px;
     border-radius: var(--fc-radius-inner);
 }
 
-.fc-playlist-title {
-    margin: 0 0 10px;
-    color: var(--secondary);
+.fc-catalog-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.fc-catalog-title {
+    margin: 0;
     font-size: 15px;
     font-weight: 600;
 }
 
-.fc-playlist-items {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    max-height: 330px;
+.fc-catalog-hint {
+    margin-left: auto;
+    color: var(--secondary);
+    font-size: 12px;
+}
+
+/* 自动换行：宽屏一行 3 张，窄屏变 1 张（minmax 下限 228px > 手机可用宽度） */
+.fc-catalog-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(228px, 1fr));
+    gap: 8px;
     margin: 0;
     padding: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
     list-style: none;
 }
 
-.fc-playlist-item {
+.fc-catalog-item {
     display: flex;
     align-items: center;
     gap: 10px;
     width: 100%;
-    min-height: 44px;
-    padding: 6px 8px;
+    min-height: 56px;   /* 触摸目标 ≥40px */
+    padding: 7px 10px;
     border: 0;
     border-radius: 10px;
     background: transparent;
@@ -2716,29 +2732,29 @@ body.fc-has-mini .fc-statusbar-wrap {
     cursor: pointer;
 }
 
-.fc-playlist-cover {
+.fc-catalog-cover {
     flex: none;
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
     border-radius: 8px;
     object-fit: cover;
 }
 
-.fc-playlist-text {
+.fc-catalog-text {
     display: flex;
     flex-direction: column;
     gap: 2px;
     min-width: 0;
 }
 
-.fc-playlist-name {
+.fc-catalog-name {
     overflow: hidden;
     font-size: 13.5px;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.fc-playlist-artist {
+.fc-catalog-artist {
     overflow: hidden;
     color: var(--secondary);
     font-size: 12px;
@@ -2746,29 +2762,62 @@ body.fc-has-mini .fc-statusbar-wrap {
     white-space: nowrap;
 }
 
-.fc-playlist-idx {
+.fc-catalog-meta {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
     margin-left: auto;
+}
+
+.fc-catalog-time {
     color: var(--secondary);
     font-size: 12px;
     font-variant-numeric: tabular-nums;
 }
 
-.fc-playlist-item:hover {
+/* 播放状态：只有当前曲目显示「播放中 / 已暂停」（文字由播放器脚本填） */
+.fc-catalog-state {
+    padding: 1px 7px;
+    border-radius: var(--fc-radius-pill);
+    background: var(--fc-accent-soft);
+    color: var(--fc-accent);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.fc-catalog-state[hidden] {
+    display: none;
+}
+
+.fc-catalog-item:hover {
     background: var(--fc-accent-soft);
 }
 
-.fc-playlist-item.is-current {
+.fc-catalog-item.is-current {
     background: var(--fc-accent-soft);
     box-shadow: inset 0 0 0 1px var(--fc-glass-stroke);
 }
 
-.fc-playlist-item.is-current .fc-playlist-name {
+.fc-catalog-item.is-current .fc-catalog-name {
     color: var(--fc-accent);
     font-weight: 600;
 }
 
-.fc-playlist-item.is-current .fc-playlist-idx {
+.fc-catalog-item.is-current .fc-catalog-time {
     color: var(--fc-accent);
+}
+
+/* 正在响的那首：缩略图加一圈强调色 */
+.fc-catalog-item.is-playing .fc-catalog-cover {
+    box-shadow: 0 0 0 2px var(--fc-accent);
+}
+
+/* 播放器脚本会把 audio 挂到 body 上（保证「页面上只有一个 <audio>」），
+   它不该出现在版式里 */
+[data-fc-audio] {
+    display: none;
 }
 
 /* 整页歌词面板 */
@@ -2865,12 +2914,16 @@ body.fc-has-mini .fc-statusbar-wrap {
     }
 
     .fc-music-layout .fc-player-cover-wrap {
-        width: 168px;
-        height: 168px;
+        width: 176px;
+        height: 176px;
     }
 
     .fc-lyrics-full {
         height: min(52vh, 380px);
+    }
+
+    .fc-catalog {
+        padding: 14px 12px 16px;
     }
 }
 
@@ -2880,7 +2933,7 @@ body.fc-has-mini .fc-statusbar-wrap {
         font-size: 22px;
     }
 
-    .fc-playlist-items {
-        max-height: 300px;
+    .fc-catalog-items {
+        grid-template-columns: minmax(0, 1fr);
     }
 }

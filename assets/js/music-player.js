@@ -34,6 +34,11 @@
     /* ---------------------------------------------------------------- 状态 */
     var audio = new Audio();
     audio.preload = 'metadata';
+    /* 把 audio 挂到 body 上：它在 main.main 之外，pjax 只替换 main.main，所以换页碰不到它。
+       这样页面上确实只存在唯一一个 <audio> 元素（实例仍是 JS 提前 new 出来这一个，
+       首页大卡 / 迷你条 / 音乐页大卡三个视图全都复用它）。 */
+    audio.setAttribute('data-fc-audio', '');
+    if (document.body) { document.body.appendChild(audio); }
 
     var index = 0;
     var pendingSeek = null;
@@ -167,6 +172,7 @@
         [dom.big, dom.mini].forEach(function (node) {
             if (node) { node.classList.toggle('is-playing', playing); }
         });
+        syncPlaylist();   // 目录里的「播放中 / 已暂停」跟着一起更新
     }
 
     function updateVolumeUI() {
@@ -473,13 +479,22 @@
         box.scrollTop = target;
     }
 
-    /* 播放列表：当前曲目高亮 */
+    /* 目录：当前曲目高亮 + 播放状态（播放中 / 已暂停）。
+       播放、暂停、切歌都会走到这里（setPlayingUI / renderMeta 都会调），
+       所以高亮和状态文字始终跟着真实播放状态走。 */
     function syncPlaylist() {
         var box = dom.playlist;
         if (!box) { return; }
+        var playing = !audio.paused && !failed;
         [].forEach.call(box.querySelectorAll('[data-track]'), function (el) {
             var on = Number(el.getAttribute('data-track')) === index;
             el.classList.toggle('is-current', on);
+            el.classList.toggle('is-playing', on && playing);
+            var st = el.querySelector('[data-state]');
+            if (st) {
+                st.hidden = !on;
+                if (on) { st.textContent = playing ? '播放中' : '已暂停'; }
+            }
             if (on) { el.setAttribute('aria-current', 'true'); } else { el.removeAttribute('aria-current'); }
         });
     }
