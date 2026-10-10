@@ -46,6 +46,11 @@
         return (btn && panel) ? { btn: btn, panel: panel } : null;
     }
 
+    /* 「该展开还是收起」的唯一判定，顺序不能调换：
+         ① 模板标了 data-fc-default-open="1"（文章页 / /posts/）→ **一律展开**，
+            压过访客的手动开合。看着像 bug（「我明明收起来了，怎么又开了」），
+            其实是刻意的：那一页的正文就是文章，把当前文章藏进折叠里更糟。
+         ② 否则才轮到 choice —— null 表示访客还没手动开合过，听模板的默认（收起）。 */
     function want(host) {
         if (host.getAttribute('data-fc-default-open') === '1') { return true; }
         return choice === null ? false : choice;

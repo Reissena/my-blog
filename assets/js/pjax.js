@@ -18,6 +18,11 @@
    迷你播放条与播放列表数据在 footer（内容区之外），永远不被替换；换完调用
    window.fcMusic.refresh() 把播放器状态画到新界面上。
 
+   ⚠️ 这条「音乐不断」有个前提：**当前文档从头到尾没被换掉**。所以
+   extend_head.html 里那段 Speculation Rules **只能用 prefetch，绝不能改成 prerender** ——
+   prerender 会在后台真正渲染目标页并整个替换文档，音频立刻断，
+   这个脚本「只换 main.main」的整套前提也跟着没了。想「加速导航」时别打它的主意。
+
    降级（任何情况都不能把站点搞坏）：
      · 缺 fetch / DOMParser / pushState → 整个脚本不启用，退化成普通多页站点
      · fetch 失败 / 超时 / 目标页结构不对 → location.href 正常跳转

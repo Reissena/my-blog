@@ -1228,7 +1228,11 @@ body.list {
 }
 
 /* 面板：高度由脚本写成 px（开合动画），收尾后回到 auto。
-   overflow:hidden 常驻，否则高度过渡时内容会溢出。 */
+   overflow:hidden 常驻，否则高度过渡时内容会溢出。
+
+   ⚠️ 这个 0.26s 被 assets/js/nav-posts.js 的 SETTLE（340ms）**依赖**：
+   那边在过渡结束后才把 height 清回 auto、收起时才补 hidden。改大这里，
+   340ms 就会在动画播到一半时把面板的高度锁死/提前藏起来 —— 要改就两处一起改。 */
 .fc-nav-panel {
     overflow: hidden;
     transition: height 0.26s cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -3418,7 +3422,10 @@ body.fc-has-mini .fc-statusbar-wrap {
 }
 
 /* ---------- 19. 左下角「背景清晰度」竖直滑块（驱动 --fc-clarity） ---------- */
-/* 访客自己决定背景图透出多少：刻度 0~70，遮罩不透明度 = 100 − 清晰度。
+/* 访客自己决定背景图透出多少：刻度 0~100，遮罩不透明度 = 100 − 清晰度。
+   （⚠️ 方向别记反：清晰度**越大**遮罩**越薄**，100 = 一点遮罩都没有。
+     真实取值范围以模板渲染的 <input min/max> 为准，默认档见 hugo.toml 的
+     params.bgClarityDefault。）
    位置在左下角、**樱花开关的上方** —— 樱花开关本来就占着左下角（left 20 / bottom 20 /
    38px），所以这里只能往上让，不能压住它。
    结构由 layouts/_partials/extend_footer.html 渲染，在 main.main 之外：
