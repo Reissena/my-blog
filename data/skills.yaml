@@ -39,7 +39,7 @@
   desc: "全部手写，没有引入任何第三方前端库"
   items:
     - name: "原生 JavaScript"
-      desc: "全站前端脚本都是手写的，零第三方库：仓库里没有 package.json，页面里也没有任何 CDN 引入的脚本。"
+      desc: "全站前端脚本都是手写的，零第三方库：仓库里没有 package.json，站内脚本也没有引用任何 CDN 包。页面里唯一的外链脚本是 Cloudflare 在边缘自动注入的统计代码，不是本站引入的依赖。"
       url: "https://developer.mozilla.org/zh-CN/docs/Web/JavaScript"
 
     - name: "CSS 自定义属性"
