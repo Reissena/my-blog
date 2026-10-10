@@ -1195,6 +1195,113 @@ body.list {
     background: var(--fc-accent);
 }
 
+/* 6c-2. 左栏「文章」折叠组
+   整行是一个 <button>（外观完全沿用上面的 .fc-nav-link，不另造一套），
+   下面 .fc-nav-panel 是靠 height 过渡做开合动画的面板。
+   结构 / 默认状态 / 最近 N 篇 / 「查看全部文章 →」全在模板里，
+   这里只管长相；开合行为在 assets/js/nav-posts.js。 */
+
+/* 按钮复位：只保留 .fc-nav-link 那套观感（按钮不会自动继承字体） */
+.fc-nav-toggle {
+    width: 100%;
+    margin: 0;
+    border: 0;
+    background: none;
+    font-family: inherit;
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: var(--secondary);
+    text-align: left;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.fc-nav-toggle:focus-visible {
+    outline: 2px solid var(--fc-accent);
+    outline-offset: -2px;
+}
+
+/* 方向箭头：收起朝右，展开（.is-open）朝下 —— 与分类分组同一套画法 */
+.fc-nav-posts.is-open > .fc-nav-toggle .fc-nav-chevron {
+    transform: rotate(90deg);
+}
+
+/* 面板：高度由脚本写成 px（开合动画），收尾后回到 auto。
+   overflow:hidden 常驻，否则高度过渡时内容会溢出。 */
+.fc-nav-panel {
+    overflow: hidden;
+    transition: height 0.26s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* hidden 属性优先于任何 display 声明，避免被主题样式顶掉 */
+.fc-nav-panel[hidden] {
+    display: none;
+}
+
+/* 面板里的列表：缩进沿用分类分组那一层 */
+.fc-nav-panel > .fc-nav-leaves {
+    margin: 2px 0 4px 10px;
+}
+
+/* 「查看全部文章 →」：列表底部，永远去 /posts/ */
+.fc-nav-more {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 2px 0 6px 10px;
+    padding: 6px 10px;
+    border-radius: var(--fc-radius-inner);
+    color: var(--fc-accent);
+    font-size: 12.5px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.15s ease;
+}
+
+.fc-nav-more:hover {
+    background: var(--fc-accent-soft);
+}
+
+.fc-nav-more-arrow {
+    transition: transform 0.15s ease;
+}
+
+.fc-nav-more:hover .fc-nav-more-arrow {
+    transform: translateX(2px);
+}
+
+/* 「最近 N 篇」之外的老文章被钉在最上面时，右侧那枚「当前」小标 */
+.fc-nav-flag {
+    flex: none;
+    margin-left: auto;
+    padding: 0 6px;
+    border: 1px solid var(--fc-accent);
+    border-radius: 999px;
+    color: var(--fc-accent);
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 16px;
+    opacity: 0.9;
+}
+
+/* 叶子标题那条规则是 `.fc-nav-leaf > span`（两行截断），「当前」标签也是
+   span，会被一起截断 —— 这里单独放开它 */
+.fc-nav-leaf > .fc-nav-flag {
+    display: inline-block;
+    overflow: visible;
+    -webkit-line-clamp: none;
+    line-clamp: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .fc-nav-panel,
+    .fc-nav-more-arrow {
+        transition: none;
+    }
+}
+
 /* ------------------------------------- 7. 归档 / 标签 / 搜索 / 分页 / 页脚 */
 .archive-year {
     margin-top: 26px;

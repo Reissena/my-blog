@@ -196,3 +196,13 @@
      ===================================================================== */ -}}
 {{- $navjs := resources.Get "js/nav-rail.js" | resources.Minify | resources.Fingerprint -}}
 <script defer src="{{ $navjs.RelPermalink }}" integrity="{{ $navjs.Data.Integrity }}" crossorigin="anonymous"></script>
+
+{{- /* =====================================================================
+     左栏「文章」折叠组：点标题行开合，展开后只铺最近 N 篇。
+     · 与 nav-rail.js 同一套路：脚本在 main.main 之外（pjax 不会替换它），
+       用事件委托 + MutationObserver 盯 main.main 的变动来接管换页后的新左栏，
+       所以只绑一次、不会随换页叠出第二套。
+     · 模板已经渲染好结构与默认状态，脚本只改属性、从不新建节点。
+     ===================================================================== */ -}}
+{{- $navposts := resources.Get "js/nav-posts.js" | resources.Minify | resources.Fingerprint -}}
+<script defer src="{{ $navposts.RelPermalink }}" integrity="{{ $navposts.Data.Integrity }}" crossorigin="anonymous"></script>

@@ -1,22 +1,47 @@
 {{- /* =====================================================================
     左侧「导航目录」—— 全站常驻的树形目录（首页 / 列表页 / 文章页共用）
     ---------------------------------------------------------------------
-    · 折叠用原生 <details>/<summary>，零 JavaScript
-    · 顶层：主页 / 文章 / 归档 / 标签 / 分类 / 搜索
-    · 「文章」下面按 category 分组：一个分类 = 一个可展开的文件夹，
-      分组内是该分类下的文章（按日期倒序）
-    · 默认展开「包含当前页的那一组」，其余折叠
+    · 顶层：主页 / 文章 / 归档 / 标签 / 分类 / 技能 / 音乐 / 搜索
+    · 「文章」是一个**可折叠分组**，不再把文章标题一股脑铺在左栏里：
+        - 点标题行开合，方向箭头指示状态（收起朝右 / 展开朝下）；
+          用 <button> + aria-expanded + aria-controls 实现，键盘 Enter / Space
+          天然可用（行为见 assets/js/nav-posts.js）
+        - 展开后**只铺最近 $recentLimit 篇**，列表底部是「查看全部文章 →」去 /posts/
+          → 文章涨到 300 篇，左栏长度也不会跟着涨（展开态同样有界）
+        - 当前文章一定看得见：在文章页 / 文章列表页默认展开并高亮；如果看的是
+          「最近 N 篇」之外的老文章，再单独把它钉在列表最上面并标注「当前」
+        - 模板只决定**默认状态**；访客手动开合过之后由脚本在同一次浏览内沿用
+          他的选择（pjax 换页也算同一次浏览），不符合条件时不记忆、不写 localStorage
+    · 「按分类」的文件夹沿用原生 <details>/<summary>，零 JavaScript、默认折叠，
+      只有包含当前页的那一组才默认打开
     · 当前页高亮：加粗 + 强调色 + 左侧强调竖条（样式见 fluent.css 的 .fc-nav-*）
-    · 数据全部来自站点真实内容（site.Taxonomies.categories / mainSections），没有写死
-    · 只在 >=1280px 显示（见 fluent.css 的 .fc-nav），更窄时自动隐藏、退回两栏 / 单栏
-   ===================================================================== */ -}}
+    · 数据全部来自站点真实内容（site.RegularPages / site.Taxonomies.categories），
+      没有写死任何标题
+    · 只在 >=1280px 显示（见 fluent.css 的 .fc-nav），更窄时（含 390px）自动隐藏
+    ===================================================================== */ -}}
 {{- $cur := .RelPermalink -}}
 {{- $curCats := .Params.categories | default (slice) -}}
 {{- $posts := where site.RegularPages "Type" "in" site.Params.mainSections -}}
-{{- /* 没有写 categories 的文章：直接挂在「文章」下面，避免在目录里消失 */ -}}
-{{- $loners := slice -}}
-{{- range $posts -}}{{- if not .Params.categories -}}{{- $loners = $loners | append . -}}{{- end -}}{{- end -}}
+{{- /* 在文章列表页 /posts/ 或任意文章详情页：都算「人在文章区」，分组默认展开 */ -}}
 {{- $inPosts := or (eq .Section "posts") (hasPrefix $cur "/posts/") -}}
+{{- /* ---------------------------------------------------------------------
+   展开后最多铺几篇。取 8：
+     · 220px 宽的左栏里一条标题最多折两行，8 条 + 「查看全部文章 →」约 300px，
+       明显短于常见视口，卡片自带的 max-height 再兜一层底；
+     · 侧栏「最新文章」卡是 3 条，左栏作为目录给到 8 条更像是「最近的一屏」，
+       再多就交给 /posts/ 列表页。
+   要改只动下面这一个数字。
+   --------------------------------------------------------------------- */ -}}
+{{- $recentLimit := 8 -}}
+{{- $byDate := $posts.ByDate.Reverse -}}
+{{- $recent := first $recentLimit $byDate -}}
+{{- $curPost := false -}}
+{{- range $byDate -}}{{- if eq .RelPermalink $cur -}}{{- $curPost = . -}}{{- end -}}{{- end -}}
+{{- $curInRecent := false -}}
+{{- range $recent -}}{{- if eq .RelPermalink $cur -}}{{- $curInRecent = true -}}{{- end -}}{{- end -}}
+{{- /* 正在看的老文章不在最近 N 篇里 → 单独钉一条，绝不出现「当前页藏在折叠里」 */ -}}
+{{- $pinCur := false -}}
+{{- if and $curPost (not $curInRecent) -}}{{- $pinCur = $curPost -}}{{- end -}}
 <nav class="fc-nav" aria-label="站点导航目录">
     <div class="fc-nav-card">
         <ul class="fc-nav-tree">
@@ -34,65 +59,99 @@
                 </a>
             </li>
 
-            <li>
-                <a class="fc-nav-link{{ if $inPosts }} is-active{{ end }}" href="{{ "posts/" | relLangURL }}"
-                    {{- if $inPosts }} aria-current="page"{{ end }}>
+            {{- /* 「文章」折叠组。is-open / aria-expanded / hidden 都是默认状态，
+                   访客手动开合后由 nav-posts.js 接管（它只改属性，不动结构，
+                   所以 pjax 换页不会叠出第二套） */ -}}
+            <li class="fc-nav-posts{{ if $inPosts }} is-open{{ end }}" data-fc-nav-posts
+                data-fc-default-open="{{ if $inPosts }}1{{ else }}0{{ end }}">
+                <button class="fc-nav-link fc-nav-toggle{{ if $inPosts }} is-active{{ end }}" type="button"
+                    id="fc-nav-posts-toggle" aria-expanded="{{ if $inPosts }}true{{ else }}false{{ end }}"
+                    aria-controls="fc-nav-posts-panel">
                     <svg class="fc-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10A1.5 1.5 0 0 0 18.5 19V8z" />
                         <path d="M14 3.5V8h4.5" />
                     </svg>
-                    <span>文章</span>
-                </a>
-                <ul class="fc-nav-groups">
-                    {{- range $name, $weighted := site.Taxonomies.categories }}
-                    {{- $term := site.GetPage (printf "/categories/%s" $name) -}}
-                    {{- $termURL := "" -}}
-                    {{- with $term }}{{ $termURL = .RelPermalink }}{{ end -}}
-                    {{- $count := len $weighted -}}
-                    {{- $open := or (in $curCats $name) (and $termURL (hasPrefix $cur $termURL)) -}}
-                    <li>
-                        <details class="fc-nav-group"{{ if $open }} open{{ end }}>
-                            <summary class="fc-nav-summary">
-                                <svg class="fc-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                                    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="M3.5 7.5a2 2 0 0 1 2-2h3.6l1.9 2h7.5a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" />
-                                </svg>
-                                <span class="fc-nav-name">{{ $name }}</span>
-                                <span class="fc-nav-count">{{ $count }}</span>
-                                <svg class="fc-nav-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="m9.5 6.5 5.5 5.5-5.5 5.5" />
-                                </svg>
-                            </summary>
-                            <ul class="fc-nav-leaves">
-                                {{- /* 用分类词条页的 .Pages（正经 page collection，支持 .ByDate） */ -}}
-                                {{- with $term }}
-                                {{- range .Pages.ByDate.Reverse }}
-                                {{- $active := eq .RelPermalink $cur }}
-                                <li>
-                                    <a class="fc-nav-leaf{{ if $active }} is-active{{ end }}" href="{{ .RelPermalink }}"
-                                        {{- if $active }} aria-current="page"{{ end }}>
-                                        <span>{{ .Title }}</span>
-                                    </a>
-                                </li>
-                                {{- end }}
-                                {{- end }}
-                            </ul>
-                        </details>
-                    </li>
+                    <span class="fc-nav-name">文章</span>
+                    <span class="fc-nav-count">{{ len $posts }}</span>
+                    <svg class="fc-nav-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="m9.5 6.5 5.5 5.5-5.5 5.5" />
+                    </svg>
+                </button>
+                <div class="fc-nav-panel" id="fc-nav-posts-panel"{{ if not $inPosts }} hidden{{ end }}>
+                    {{- /* 脚本没跑起来时（禁用 JS / 脚本加载失败）别把列表锁死在折叠里，
+                           退回改造前「展开着」的样子 —— 只是没有开合动画而已 */ -}}
+                    <noscript><style>[data-fc-nav-posts]>.fc-nav-panel[hidden]{display:block}</style></noscript>
+                    <ul class="fc-nav-leaves">
+                        {{- with $pinCur }}
+                        {{- /* 最近 N 篇之外的老文章：钉在最上面 + 标「当前」 */ -}}
+                        <li>
+                            <a class="fc-nav-leaf is-active" href="{{ .RelPermalink }}" aria-current="page">
+                                <span>{{ .Title }}</span>
+                                <span class="fc-nav-flag">当前</span>
+                            </a>
+                        </li>
+                        {{- end }}
+                        {{- range $recent }}
+                        {{- $active := eq .RelPermalink $cur }}
+                        <li>
+                            <a class="fc-nav-leaf{{ if $active }} is-active{{ end }}" href="{{ .RelPermalink }}"
+                                {{- if $active }} aria-current="page"{{ end }}>
+                                <span>{{ .Title }}</span>
+                            </a>
+                        </li>
+                        {{- end }}
+                    </ul>
+                    <a class="fc-nav-more" href="{{ "posts/" | relLangURL }}">
+                        <span>查看全部文章</span>
+                        <span class="fc-nav-more-arrow" aria-hidden="true">→</span>
+                    </a>
+                    {{- /* 分类文件夹：沿用原样（默认折叠、只有含当前页的那组打开）。
+                           它按「分类」这条轴组织，和上面的「最近 N 篇」不冲突，
+                           且数量由分类数决定，不随文章数增长。 */ -}}
+                    {{- if site.Taxonomies.categories }}
+                    <ul class="fc-nav-groups">
+                        {{- range $name, $weighted := site.Taxonomies.categories }}
+                        {{- $term := site.GetPage (printf "/categories/%s" $name) -}}
+                        {{- $termURL := "" -}}
+                        {{- with $term }}{{ $termURL = .RelPermalink }}{{ end -}}
+                        {{- $count := len $weighted -}}
+                        {{- $open := or (in $curCats $name) (and $termURL (hasPrefix $cur $termURL)) -}}
+                        <li>
+                            <details class="fc-nav-group"{{ if $open }} open{{ end }}>
+                                <summary class="fc-nav-summary">
+                                    <svg class="fc-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M3.5 7.5a2 2 0 0 1 2-2h3.6l1.9 2h7.5a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" />
+                                    </svg>
+                                    <span class="fc-nav-name">{{ $name }}</span>
+                                    <span class="fc-nav-count">{{ $count }}</span>
+                                    <svg class="fc-nav-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="m9.5 6.5 5.5 5.5-5.5 5.5" />
+                                    </svg>
+                                </summary>
+                                <ul class="fc-nav-leaves">
+                                    {{- /* 用分类词条页的 .Pages（正经 page collection，支持 .ByDate） */ -}}
+                                    {{- with $term }}
+                                    {{- range .Pages.ByDate.Reverse }}
+                                    {{- $active := eq .RelPermalink $cur }}
+                                    <li>
+                                        <a class="fc-nav-leaf{{ if $active }} is-active{{ end }}" href="{{ .RelPermalink }}"
+                                            {{- if $active }} aria-current="page"{{ end }}>
+                                            <span>{{ .Title }}</span>
+                                        </a>
+                                    </li>
+                                    {{- end }}
+                                    {{- end }}
+                                </ul>
+                            </details>
+                        </li>
+                        {{- end }}
+                    </ul>
                     {{- end }}
-                    {{- /* 未分类文章：$posts 本身已按日期倒序，直接遍历即可 */ -}}
-                    {{- range $loners }}
-                    {{- $active := eq .RelPermalink $cur }}
-                    <li>
-                        <a class="fc-nav-leaf{{ if $active }} is-active{{ end }}" href="{{ .RelPermalink }}"
-                            {{- if $active }} aria-current="page"{{ end }}>
-                            <span>{{ .Title }}</span>
-                        </a>
-                    </li>
-                    {{- end }}
-                </ul>
+                </div>
             </li>
 
             {{- $curRel := .RelPermalink -}}
