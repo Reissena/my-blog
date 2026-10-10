@@ -1478,7 +1478,18 @@ a.fc-pager-link:hover {
 }
 
 /* ------------------------------------------------------------- 9. 响应式 */
-@media screen and (max-width: 768px) {
+/* ⚠️ 导航这一段**单独用 880px**，比下面那档 768px 宽 —— 原因：
+   导航涨到 8 项以后，那条分段控件自己就要 764px（每项 ≈95px：2 个汉字 14.5px
+   + 左右各 16px 内边距），再加页头左右各 24px 内边距，**视口窄于约 812px 时
+   它连独占一整行都放不下**，会被 body 的 overflow-x: clip 悄悄裁掉最后一项
+   （实测 800px 时「搜索」被切掉 14px，且没有任何渐隐提示，看着像点不到）。
+   812~861px 这一段虽然不裁字，却会折成「品牌 / 导航 / 主题按钮」三行，很难看。
+   所以 880px 及以下直接走手机那套「品牌一行 + 导航独占一行的滑轨」：
+   实测 ≥1071px 单行放得下 8 项（品牌 195 + 导航 764 + 按钮 36 + 间距 28 + 内边距 48）；
+   881~1070px 页头折成两行（导航与主题按钮同一行，814 ≤ 视口−48）；
+   ≤880px 就是下面这段。
+   注意：卡片 / 头像 / 正文那些响应式仍然留在下面那档 768px，两者互不影响。 */
+@media screen and (max-width: 880px) {
     .header-nav {
         flex-wrap: wrap;
         row-gap: 8px;
@@ -1494,7 +1505,7 @@ a.fc-pager-link:hover {
        注意这里**没有**写「到某个宽度才切成滑轨」的断点 —— 内容放得下时
        scrollWidth 恒等于 clientWidth，既滑不动、也不会有渐隐，
        所以宽一点的小屏上它跟以前那条分段控件长得一模一样；
-       只有真的溢出（实测 ≤407px）才表现为滑轨。这就是渐进增强。 */
+       只有真的溢出才表现为滑轨（8 项实测：≤476px 开始溢出，390px 时可滑 68px）。 */
     .fc-nav-rail {
         order: 3;
         /* 独占一整行：flex-basis 100% + 不收缩，避免被左侧站名挤窄 */
@@ -1592,7 +1603,11 @@ a.fc-pager-link:hover {
     .fc-brand-text {
         font-size: 15px;
     }
+}
 
+/* 这一档还是原来的 768px，只管卡片 / 头像 / 正文 —— 与顶部导航无关，
+   导航的断点在上面 880px 那一档，别混到一起。 */
+@media screen and (max-width: 768px) {
     /* 卡片单列时收紧内边距（卡片本体没有 padding，内边距在 body 上） */
     .fc-cards {
         gap: 14px;
@@ -3681,5 +3696,159 @@ body.fc-has-mini .fc-clarity {
     .fc-skills-list {
         grid-template-columns: minmax(0, 1fr);
         gap: 10px;
+    }
+}
+
+/* ---------------- 21. 关于 / 公告页（/about/）+ 作者卡里的公告小标签 ---------------- */
+/* 整页没有「直接压在背景图上」的文字：标题在 .fc-page-head 卡片里、正文在
+   .fc-about-body 卡片里（都是列表页 / 技能页 / 音乐页在用的现成玻璃卡），
+   所以不需要额外加底衬 —— 与技能页同一条约定。 */
+.fc-about-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin: var(--gap) 0;
+    min-width: 0;
+}
+
+/* .fc-page-head 自带 margin（列表页靠它跟下面的卡片拉开），这里外面已经用 gap 排了 */
+.fc-about-page .fc-page-head {
+    margin: 0;
+}
+
+.fc-about-body {
+    padding: 26px 30px 20px;
+    overflow-wrap: anywhere;   /* 长链接 / 长英文串不撑破卡片 */
+}
+
+/* 正文里的第一段贴着卡片上沿，会显得比卡片内边距更高 —— 交给主题的排版，
+   这里只把「正文卡片里的小标题」和整站 h2 的间距对齐 */
+.fc-about-body> :first-child {
+    margin-top: 0;
+}
+
+.fc-about-body> :last-child {
+    margin-bottom: 0;
+}
+
+/* 正文宽度对齐文章页（860px）：宽屏下每行不至于拉得太长 */
+@media screen and (min-width: 1280px) {
+    .fc-about-page {
+        max-width: 860px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .fc-about-body {
+        padding: 20px 18px 16px;
+    }
+}
+
+/* ---------------- 作者卡里的「公告」小标签 ----------------
+   要求就是「别太大」：**单行、固定 44px 高**，左边 32px 圆角小图、右边一行文案。
+   默认高度其实是 44 = 上下各留 6px + 32px 的图（.fc-profile-tag-media），
+   所以图多大、行就多高，不会自己长成一张卡片。
+   文案过长就省略号：.fc-profile-tag-text 上 overflow + nowrap + ellipsis，
+   并且显式写 min-width: 0 —— flex 子项默认 min-width: auto，不写这个它就不肯收缩，
+   省略号永远不出现（这是最常踩的一个坑）。
+   颜色 / 圆角 / 悬停一律用站内现成令牌（--fc-accent / --fc-accent-soft /
+   --fc-accent-ink / --fc-radius-pill），深浅色都跟着主题走，没有硬编码色值。 */
+.fc-profile-tag {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    padding: 0 12px 0 6px;
+    border: 1px solid var(--fc-glass-stroke);
+    border-radius: var(--fc-radius-pill);
+    background: var(--fc-accent-soft);
+    color: var(--primary);
+    font-size: 13px;
+    line-height: 1.4;
+    text-decoration: none;
+    transition: background 0.15s ease, border-color 0.15s ease,
+        color 0.15s ease, transform 0.15s ease;
+}
+
+/* 左侧小图：32px 圆角方块。overflow: hidden 让图片跟着圆角裁 */
+.fc-profile-tag-media {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    overflow: hidden;
+    border-radius: 9px;
+    background: var(--fc-glass-bg-strong);
+    border: 1px solid var(--fc-avatar-stroke);
+    color: var(--fc-accent);
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.fc-profile-tag-media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.fc-profile-tag-media svg {
+    width: 17px;
+    height: 17px;
+}
+
+.fc-profile-tag-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.fc-profile-tag-arrow {
+    flex: none;
+    width: 13px;
+    height: 13px;
+    color: var(--fc-accent);
+    opacity: 0.75;
+}
+
+/* 悬停 / 按下 / 键盘聚焦：与 .fc-profile-social 那一排图标按钮同一套手感 */
+.fc-profile-tag:hover {
+    background: var(--fc-accent);
+    border-color: var(--fc-accent);
+    color: var(--fc-accent-ink);
+    transform: translateY(-2px);
+}
+
+.fc-profile-tag:hover .fc-profile-tag-media {
+    background: var(--fc-accent-ink);
+    border-color: transparent;
+    color: var(--fc-accent);
+}
+
+.fc-profile-tag:hover .fc-profile-tag-arrow {
+    color: var(--fc-accent-ink);
+    opacity: 1;
+}
+
+.fc-profile-tag:active {
+    transform: translateY(0) scale(0.99);
+}
+
+.fc-profile-tag:focus-visible {
+    outline: 2px solid var(--fc-accent);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fc-profile-tag {
+        transition: none;
+    }
+
+    .fc-profile-tag:hover {
+        transform: none;
     }
 }

@@ -1,0 +1,36 @@
+{{- /* =====================================================================
+     关于 / 公告页（content/about/index.md → /about/）
+     ---------------------------------------------------------------------
+     · 这是一个「叶子包」（leaf bundle，目录里放 index.md），所以：
+         - 网址 /about/ 由**目录名**决定，不靠 front matter 里的 url；
+         - 模板由**目录名**决定的 type（about）选中，不靠 front matter 里的 layout。
+       这么写是有原因的：本页要能在网页后台（Pages CMS）编辑，而 Pages CMS 保存时
+       只会写回 .pages.yml 里声明过的字段 —— 没声明的 front matter 键会被丢掉。
+       把 url / layout 放进 front matter 迟早会被后台的某次保存清掉，页面就散架了。
+     · 布局与文章页一致：左侧目录 + 正文，没有右侧栏（.fc-layout--article）。
+     · 整页没有「直接压在背景图上」的文字：标题在 .fc-page-head 卡片里、正文在
+       .fc-about-body 卡片里，沿用列表页 / 技能页那套现成样式，不需要额外加底衬。
+     ===================================================================== */ -}}
+{{- define "main" }}
+
+<div class="fc-layout fc-layout--article">
+    {{- partial "site_nav.html" . }}
+    <div class="fc-main-col">
+        <div class="fc-about-page">
+
+            <header class="fc-page-head fc-glass">
+                <h1 class="fc-page-title">{{ .Title }}</h1>
+                {{- with .Params.subtitle }}<p class="fc-page-desc">{{ . }}</p>{{ end }}
+            </header>
+
+            {{- with .Content }}
+            <section class="fc-about-body fc-glass post-content md-content">
+                {{ . }}
+            </section>
+            {{- end }}
+
+        </div>
+    </div>
+</div>
+
+{{- end }}{{/* end main */ -}}

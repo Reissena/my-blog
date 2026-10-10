@@ -96,6 +96,71 @@ content:
         options:
           media: images
 
+  # 关于 / 公告页（content/about/index.md → /about/）
+  # · 单文件（singleton）集合：整页就是这一个文件，后台左侧会出现「关于 / 公告」。
+  # · ⚠️ 这一页同时是**首页作者卡里那颗公告小标签**的数据源，派生关系是：
+  #       小标签右侧文案 ← summary
+  #       小标签左侧小图 ← cover.image
+  #       小标签点去哪   ← 这一页自己的网址
+  #   所以只改这里一处，关于页和首页小标签一起更新，不用维护两个地方。
+  # · ⚠️ 下面这些字段**必须写全**：Pages CMS 保存时会按 fields 重新拼 front matter，
+  #   没在这里声明的键会被丢掉（源码 lib/schema.ts 的 deepMap 只遍历 fields）。
+  #   因此这一页刻意**不用** front matter 里的 url / layout ——
+  #   网址 /about/ 与所用模板都由 content/about/ 这个目录名决定，后台怎么存都丢不掉。
+  # · ⚠️ 这里**没有**写集合级的 `media: images`（文章那个集合里有，属于历史写法）：
+  #   用 Pages CMS 自己的配置校验器跑过，集合级的 media 已经不在它认识的键里
+  #   （报 Unrecognized key: "media"）。要指定图床就写在字段的 options.media 上，
+  #   见下面 cover.image —— 这是官方文档现在的写法。
+  - name: about
+    label: 关于 / 公告
+    type: file
+    path: content/about/index.md
+    format: yaml-frontmatter
+    fields:
+      - name: title
+        label: 标题
+        type: string
+        required: true
+        options:
+          maxlength: 60
+
+      - name: subtitle
+        label: 副标题（标题下面的一句话，可以留空）
+        type: string
+        required: false
+        options:
+          maxlength: 120
+
+      - name: summary
+        label: 公告摘要（首页作者卡那个小标签右侧显示的就是这一行，太长会自动截断）
+        type: text
+        required: false
+        options:
+          maxlength: 300
+
+      - name: cover
+        label: 小标签左侧的小图（可选；不传就显示一个公告小图标）
+        type: object
+        required: false
+        fields:
+          - name: image
+            label: 图片
+            type: image
+            options:
+              media: images
+          - name: alt
+            label: 图片描述（无障碍 / SEO）
+            type: string
+          - name: caption
+            label: 图注
+            type: string
+
+      - name: body
+        label: 正文
+        type: rich-text
+        options:
+          media: images
+
   # 技能 / 技术栈清单（页面 /skills/ 的内容全部读这个文件）
   # · data/skills.yaml 本身就是「分类数组」，所以这里用 type: file + list: true
   #   （list: true 用在 file 上 = 整个文件就是一个顶层数组，见 Pages CMS 文档的 List 一节）

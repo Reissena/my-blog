@@ -42,6 +42,15 @@
     <path d="M3.6 12.2 12 16.4l8.4-4.2" />
     <path d="M3.6 16.2 12 20.4l8.4-4.2" />
 </svg>
+{{- else if eq $icon "info" -}}
+{{- /* 关于 / 公告：圆圈里一个 i（信息图标）。加「关于」这项时为左栏新加，
+       沿用同一套画法（24 视框、stroke 1.7、圆头圆角）。 */ -}}
+<svg class="fc-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="8.6" />
+    <path d="M12 11.2v5" />
+    <circle cx="12" cy="7.9" r="1.05" fill="currentColor" stroke="none" />
+</svg>
 {{- else if eq $icon "music" -}}
 <svg class="fc-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

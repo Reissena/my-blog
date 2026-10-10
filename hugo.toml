@@ -167,6 +167,14 @@ mainSections = ["posts"]
     name = "音乐"
     url = "/music/"
     weight = 35
+  # 「关于」/ 公告页：正文与首页作者卡里那颗公告小标签都从这里读，见 content/about/。
+  # 放在「音乐」之后、「搜索」之前 —— 内容类在前、工具类（关于 / 搜索）收尾，
+  # 搜索仍然是最后一项。左栏是同一份 [[menu.main]]，加一次两边都有。
+  [[menu.main]]
+    identifier = "about"
+    name = "关于"
+    url = "/about/"
+    weight = 38
   [[menu.main]]
     identifier = "search"
     name = "搜索"

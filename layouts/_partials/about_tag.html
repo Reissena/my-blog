@@ -1,0 +1,61 @@
+{{- /* =====================================================================
+     首页作者卡里的「公告」小标签（只这一个）
+     ---------------------------------------------------------------------
+     数据**全部派生自关于页**（content/about/index.md），后台里只改那一页，
+     首页这颗小标签就跟着一起变 —— 不需要第二个地方去维护：
+       · 链接目标  → 关于页自己的网址（跟着 Hugo 算，不写死 /about/）
+       · 右侧文案  → 关于页 front matter 的 summary（空了就退回标题）
+       · 左侧小图  → 关于页 front matter 的 cover.image；
+                     没设图时退回站标 images/logo.jpg（一定存在，不会破图）
+     图片地址的解析逻辑与 _partials/cover.html 完全一致（同一套三种来源）：
+       · assets/ 下的图 → 走资源管线（带指纹，两种构建模式都对）
+       · static/ 下的图（例如 Pages CMS 上传的）→ 直接用公开路径
+       · http(s) 外链 → 原样使用
+
+     结构刻意保持「一行、44px 高」：左边 32px 圆角小图，右边一行文案，
+     放不下就用省略号（.fc-profile-tag-text 的 ellipsis，见 fluent.css 第 21 节）。
+     就是一个普通 <a>，不挂任何脚本 —— 站内跳转由 pjax 接管，天然不会重复绑定。
+     ===================================================================== */ -}}
+{{- $about := site.GetPage "/about" -}}
+{{- with $about -}}
+{{- $text := .Params.summary | default .Title -}}
+{{- $img := "" -}}
+{{- with .Params.cover -}}
+    {{- if reflect.IsMap . -}}{{- $img = .image | default "" -}}{{- else -}}{{- $img = . -}}{{- end -}}
+{{- end -}}
+{{- if not $img -}}
+    {{- with .Params.images -}}{{- $img = index . 0 -}}{{- end -}}
+{{- end -}}
+{{- $src := "" -}}
+{{- if $img -}}
+    {{- if or (hasPrefix $img "http://") (hasPrefix $img "https://") -}}
+        {{- $src = $img -}}
+    {{- else -}}
+        {{- $path := strings.TrimPrefix "/" $img -}}
+        {{- with resources.Get $path -}}
+            {{- $src = printf "%s%s" site.Home.RelPermalink (strings.TrimPrefix "/" .RelPermalink) -}}
+        {{- else -}}
+            {{- $src = printf "%s%s" site.Home.RelPermalink $path -}}
+        {{- end -}}
+    {{- end -}}
+{{- end -}}
+<a class="fc-profile-tag" href="{{ .RelPermalink }}" title="查看公告：{{ .Title }}">
+    <span class="fc-profile-tag-media">
+        {{- if $src -}}
+        <img src="{{ $src }}" alt="" width="32" height="32" loading="lazy" decoding="async">
+        {{- else -}}
+        {{- /* 关于页没设图时的兜底：喇叭（公告）图标，绝不出现破图 */ -}}
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 9.5v5a1.5 1.5 0 0 0 1.5 1.5H8l6.5 4V5.5L8 9.5H5.5A1.5 1.5 0 0 0 4 11z" />
+            <path d="M18 9.6a3.6 3.6 0 0 1 0 4.8" />
+        </svg>
+        {{- end -}}
+    </span>
+    <span class="fc-profile-tag-text">{{ $text }}</span>
+    <svg class="fc-profile-tag-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m9.5 6.5 5.5 5.5-5.5 5.5" />
+    </svg>
+</a>
+{{- end -}}
