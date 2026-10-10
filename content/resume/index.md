@@ -1,9 +1,8 @@
 ---
-title: "个人简历"
-subtitle: "浮华Yun 的个人简历 —— 只写了能在站内核实到的内容，还没填的小节留了空位"
-label: "个人简介"
+title: 个人简历
+subtitle: 浮华Yun 的个人简历 —— 只写了能在站内核实到的内容，还没填的小节留了空位
+label: 个人简介
 ---
-
 > **这一页是我的个人简历。** 目前**只写了站内能核实到的内容**；
 > 我还没想好或者还没有的部分，留了明显的空位并标着「这里准备放什么」，等我补上再删掉提示。
 > 📌 这一页可以在网页后台改：左侧点 **「个人简历」**，改完点右上角 `Save`，大约一分钟后线上更新。
@@ -11,7 +10,7 @@ label: "个人简介"
 ## 关于我
 
 - **名字**：浮华Yun
-- **这个博客**：`YunX东方夜话` —— <https://yunblog.com.cn>
+- **这个博客**：`YunX东方夜话` —— [https://yunblog.com.cn](https://yunblog.com.cn)
 - **在做的事**：写技术笔记、折腾自己的网站、记录生活随笔
 
 我自己写在这份简历上的自我介绍，就是站点首页那句原文：
@@ -26,7 +25,7 @@ label: "个人简介"
 - **Hugo** —— 这个站就是用 Hugo 0.167.0（extended 版）构建的，主题是 PaperMod。
 - **HTML / CSS** —— 全站观感来自一份自己写的 `fluent.css`：玻璃卡片、深浅两套配色、响应式布局。
 - **JavaScript（原生）** —— 站内脚本（pjax 无刷新切页、音乐播放器、背景轮换、状态栏等）都是手写的原生 JS，
-  这个仓库里没有 `package.json`，站内代码一个第三方库都没引。
+这个仓库里没有 `package.json`，站内代码一个第三方库都没引。
 - **Cloudflare Workers** —— 站点托管在这里；另外有一段 Worker 脚本负责页面访问统计。
 - **Git / GitHub** —— 这个站的源码放在 GitHub 上，推上去就自动构建部署。
 
@@ -34,7 +33,7 @@ label: "个人简介"
 
 ### YunX东方夜话（个人博客）· 个人项目 · 线上运行中
 
-**网址**：<https://yunblog.com.cn>
+**网址**：[https://yunblog.com.cn](https://yunblog.com.cn)
 
 我自己的个人博客，从搭起来到日常更新都在自己维护。下面写的是**这个站现在实际有什么**
 （技术细节记在仓库的 `docs/技术总览.md` 里）：
@@ -44,7 +43,7 @@ label: "个人简介"
 - **音乐播放器**：全站共用一个播放器；音频文件放在 Cloudflare R2 上，仓库里只留封面和歌词。
 - **内容后台**：接了 Pages CMS，写文章、改公告、改这一页简历都在网页后台点，保存后自动重新构建发布。
 - **访问统计**：用 Cloudflare Workers + Analytics Engine 记录页面访问；
-  访客去重用的是加盐哈希指纹（`SHA-256(IP + UA + 当天盐)`），**不存原始 IP**。
+访客去重用的是加盐哈希指纹（`SHA-256(IP + UA + 当天盐)`），**不存原始 IP**。
 
 ## 教育经历
 
@@ -60,14 +59,16 @@ label: "个人简介"
 
 ## 联系方式
 
-| 方式 | 地址 |
-| --- | --- |
-| GitHub | <https://github.com/Reissena> |
-| B 站 | <https://space.bilibili.com/471275021> |
-| 网易云音乐 | <https://music.163.com/#/user/home?id=1374078630> |
-| QQ | 3307590541 |
-| 邮箱 | <3307590541@qq.com> |
-| RSS 订阅 | <https://yunblog.com.cn/index.xml> |
 
-> 上面这些地址和首页作者卡底下那排图标是同一份，改这里不会改首页那排 ——
-> 首页那排写在 `layouts/index.html` 里，要改跟我说一声。
+| 方式 | 地址 |
+| ------ | -------------------------------------------------------------------------------------------------- |
+| GitHub | [https://github.com/Reissena](https://github.com/Reissena) |
+| B 站 | [https://space.bilibili.com/471275021](https://space.bilibili.com/471275021) |
+| 网易云音乐 | [https://music.163.com/#/user/home?id=1374078630](https://music.163.com/#/user/home?id=1374078630) |
+| QQ | 3307590541 |
+| 邮箱 | [3307590541@qq.com](mailto:3307590541@qq.com) |
+| RSS 订阅 | [https://yunblog.com.cn/index.xml](https://yunblog.com.cn/index.xml) |
+
+
+>
+
