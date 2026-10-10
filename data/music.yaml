@@ -84,3 +84,77 @@
       name: "曲扬"
     - role: "制作人"
       name: "异环10AM"
+
+- id: "07-beautiful-trick"
+  title: "Beautiful Trick"
+  artist: "FELT"
+  file: "https://music.yunblog.com.cn/07-beautiful-trick.mp3"
+  cover: "/music/covers/07-beautiful-trick.png"
+  lyrics: "/music/lyrics/07-beautiful-trick.lrc"
+  instrumental: false
+  duration: 314
+  credits:
+    - role: "作词"
+      name: "David Kronos"
+    - role: "编曲"
+      name: "Maurits\"禅\"Cornelis"
+
+- id: "08-youre-the-shine"
+  title: "You're the Shine (Night Butterflies)"
+  artist: "FELT"
+  file: "https://music.yunblog.com.cn/08-youre-the-shine.mp3"
+  cover: "/music/covers/08-youre-the-shine.png"
+  lyrics: "/music/lyrics/08-youre-the-shine.lrc"
+  instrumental: false
+  duration: 310
+  credits: []
+
+- id: "09-cant-look-away"
+  title: "Can't look away"
+  artist: "Vivienne"
+  file: "https://music.yunblog.com.cn/09-cant-look-away.mp3"
+  cover: "/music/covers/09-cant-look-away.jpg"
+  lyrics: "/music/lyrics/09-cant-look-away.lrc"
+  instrumental: false
+  duration: 370
+  credits:
+    - role: "原曲"
+      name: "【梦殿大祀庙】东方神霊庙 ～ Ten Desires."
+
+- id: "10-one-more-time"
+  title: "One More Time"
+  artist: "Vivienne"
+  file: "https://music.yunblog.com.cn/10-one-more-time.mp3"
+  cover: "/music/covers/10-one-more-time.jpg"
+  lyrics: "/music/lyrics/10-one-more-time.lrc"
+  instrumental: false
+  duration: 332
+  credits:
+    - role: "Vocal"
+      name: "Vivienne"
+    - role: "Arrange"
+      name: "Maurits\"慣\"Cornelis"
+
+- id: "11-the-sun-and-moon"
+  title: "The Sun and Moon"
+  artist: "Vivienne"
+  file: "https://music.yunblog.com.cn/11-the-sun-and-moon.mp3"
+  cover: "/music/covers/11-the-sun-and-moon.png"
+  lyrics: "/music/lyrics/11-the-sun-and-moon.lrc"
+  instrumental: false
+  duration: 205
+  credits:
+    - role: "作词"
+      name: "Renko (ORANGE★JAM)"
+    - role: "编曲"
+      name: "NAGI☆"
+
+- id: "12-to-you"
+  title: "To you"
+  artist: "Vivienne"
+  file: "https://music.yunblog.com.cn/12-to-you.mp3"
+  cover: "/music/covers/12-to-you.png"
+  lyrics: "/music/lyrics/12-to-you.lrc"
+  instrumental: false
+  duration: 184
+  credits: []

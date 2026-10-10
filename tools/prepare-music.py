@@ -72,6 +72,22 @@ TRACKS = [
     dict(id="05-song-for-two", mp3="平井 大 - SONG FOR TWO.mp3", lrc=None),
     dict(id="06-city-escape-plan", mp3="异环10AM - 城市逃离计划30%.mp3",
          lrc="异环10AM - 城市逃离计划30%.lrc"),
+    # 2026-10-10 新增的 6 首：mp3 与 lrc 同名并排放在源目录里（不在网易云目录），
+    # 所以 lrc 直接写完整文件名即可，LRC_DIRS 会先在 SRC_MUSIC 里命中。
+    # id 沿用「NN-标题的 ASCII 短横线写法」这套老规则，NN 接在现有 06 后面，
+    # 顺序与站主给的清单一致 —— 别插到中间去，否则 R2 对象名与 yaml 会对不上。
+    dict(id="07-beautiful-trick", mp3="FELT - Beautiful Trick.mp3",
+         lrc="FELT - Beautiful Trick.lrc"),
+    dict(id="08-youre-the-shine", mp3="FELT - You're the Shine (Night Butterflies).mp3",
+         lrc="FELT - You're the Shine (Night Butterflies).lrc"),
+    dict(id="09-cant-look-away", mp3="Vivienne - Can't look away.mp3",
+         lrc="Vivienne - Can't look away.lrc"),
+    dict(id="10-one-more-time", mp3="Vivienne - One More Time.mp3",
+         lrc="Vivienne - One More Time.lrc"),
+    dict(id="11-the-sun-and-moon", mp3="Vivienne - The Sun and Moon.mp3",
+         lrc="Vivienne - The Sun and Moon.lrc"),
+    dict(id="12-to-you", mp3="Vivienne - To you.mp3",
+         lrc="Vivienne - To you.lrc"),
 ]
 
 
