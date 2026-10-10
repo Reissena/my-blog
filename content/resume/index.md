@@ -24,8 +24,7 @@ label: 个人简介
 
 - **Hugo** —— 这个站就是用 Hugo 0.167.0（extended 版）构建的，主题是 PaperMod。
 - **HTML / CSS** —— 全站观感来自一份自己写的 `fluent.css`：玻璃卡片、深浅两套配色、响应式布局。
-- **JavaScript（原生）** —— 站内脚本（pjax 无刷新切页、音乐播放器、背景轮换、状态栏等）都是手写的原生 JS，
-这个仓库里没有 `package.json`，站内代码一个第三方库都没引。
+- **JavaScript**—— 站内脚本（pjax 无刷新切页、音乐播放器、背景轮换、状态栏等）。
 - **Cloudflare Workers** —— 站点托管在这里；另外有一段 Worker 脚本负责页面访问统计。
 - **Git / GitHub** —— 这个站的源码放在 GitHub 上，推上去就自动构建部署。
 
