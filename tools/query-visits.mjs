@@ -33,46 +33,59 @@ const pv = 'SUM(_sample_interval * double1)';
 const uv = 'count(DISTINCT index1)';
 const since = (days) => `timestamp > NOW() - INTERVAL '${days}' DAY`;
 
+/**
+ * ⚠️ **列别名只能用 ASCII。**
+ * 实测（2026-10-10）：写 `AS 访问次数` 会被 SQL 解析器直接拒掉 ——
+ * HTTP 422 `sql parser error: Expected an identifier after AS, found: 访`，
+ * 于是**八条查询全部报错**，而这件事只有真跑一次接口才会发现
+ * （只做语法检查、只读代码都看不出来）。
+ * 所以这里一律用英文别名，显示之前再由 LABELS 翻成中文。
+ */
+const LABELS = {
+  pv: '访问次数', uv: '访客数', path: '页面', country: '国家',
+  src: '来源', device: '设备', mode: '载荷方式', day: '日期', timestamp: '时间',
+};
+
 const QUERIES = {
   总览: (d) => `
-    SELECT ${pv} AS 访问次数, ${uv} AS 访客数
+    SELECT ${pv} AS pv, ${uv} AS uv
     FROM ${DATASET} WHERE ${since(d)}`,
 
   每日: (d) => `
-    SELECT toDate(timestamp) AS 日期, ${pv} AS 访问次数, ${uv} AS 访客数
+    SELECT toDate(timestamp) AS day, ${pv} AS pv, ${uv} AS uv
     FROM ${DATASET} WHERE ${since(d)}
-    GROUP BY 日期 ORDER BY 日期 DESC`,
+    GROUP BY day ORDER BY day DESC`,
 
   页面: (d) => `
-    SELECT blob1 AS 页面, ${pv} AS 访问次数, ${uv} AS 访客数
+    SELECT blob1 AS path, ${pv} AS pv, ${uv} AS uv
     FROM ${DATASET} WHERE ${since(d)}
-    GROUP BY 页面 ORDER BY 访问次数 DESC LIMIT 25`,
+    GROUP BY path ORDER BY pv DESC LIMIT 25`,
 
   国家: (d) => `
-    SELECT blob2 AS 国家, ${pv} AS 访问次数, ${uv} AS 访客数
+    SELECT blob2 AS country, ${pv} AS pv, ${uv} AS uv
     FROM ${DATASET} WHERE ${since(d)}
-    GROUP BY 国家 ORDER BY 访问次数 DESC LIMIT 25`,
+    GROUP BY country ORDER BY pv DESC LIMIT 25`,
 
   来源: (d) => `
-    SELECT blob3 AS 来源, ${pv} AS 访问次数, ${uv} AS 访客数
+    SELECT blob3 AS src, ${pv} AS pv, ${uv} AS uv
     FROM ${DATASET} WHERE ${since(d)}
-    GROUP BY 来源 ORDER BY 访问次数 DESC LIMIT 25`,
+    GROUP BY src ORDER BY pv DESC LIMIT 25`,
 
   设备: (d) => `
-    SELECT blob4 AS 设备, ${pv} AS 访问次数, ${uv} AS 访客数
+    SELECT blob4 AS device, ${pv} AS pv, ${uv} AS uv
     FROM ${DATASET} WHERE ${since(d)}
-    GROUP BY 设备 ORDER BY 访问次数 DESC`,
+    GROUP BY device ORDER BY pv DESC`,
 
   // 「整页进入」与「pjax 站内跳转」的比例。拿它验证 pjax 那条判定真的生效了：
   // 如果 pjax 一行都没有，说明 assets/js/pjax.js 的 X-PJAX 头那条链路断了。
   方式: (d) => `
-    SELECT blob5 AS 载荷方式, ${pv} AS 访问次数, ${uv} AS 访客数
+    SELECT blob5 AS mode, ${pv} AS pv, ${uv} AS uv
     FROM ${DATASET} WHERE ${since(d)}
-    GROUP BY 载荷方式 ORDER BY 访问次数 DESC`,
+    GROUP BY mode ORDER BY pv DESC`,
 
   最近: (d) => `
-    SELECT timestamp AS 时间, blob1 AS 页面, blob2 AS 国家, blob3 AS 来源,
-           blob4 AS 设备, blob5 AS 方式
+    SELECT timestamp, blob1 AS path, blob2 AS country,
+           blob3 AS src, blob4 AS device, blob5 AS mode
     FROM ${DATASET} WHERE ${since(d)}
     ORDER BY timestamp DESC LIMIT 30`,
 };
@@ -90,11 +103,12 @@ async function accountId() {
   return '';
 }
 
-/** 把 {"meta":[…],"data":[…] } 或裸数组统一成 {columns, rows} */
+/** 把 {"meta":[…],"data":[…] } 或裸数组统一成 {columns, rows}，顺手把英文列名翻成中文 */
 function normalize(payload) {
   const data = Array.isArray(payload) ? payload : (payload && payload.data) || [];
-  const columns = data.length ? Object.keys(data[0]) : [];
-  return { columns, rows: data.map((r) => columns.map((c) => r[c])) };
+  const raw = data.length ? Object.keys(data[0]) : [];
+  const columns = raw.map((c) => LABELS[c] || c);
+  return { columns, rows: data.map((r) => raw.map((c) => r[c])) };
 }
 
 function printTable({ columns, rows }) {
@@ -137,13 +151,34 @@ if (!account) {
 }
 
 const sql = QUERIES[which](days).trim();
-const res = await fetch(API(account), {
-  method: 'POST',
-  headers: { Authorization: `Bearer ${token}` },
-  body: sql,
-});
 
-const text = await res.text();
+/**
+ * ⚠️ 网络层要重试、且必须接住异常。
+ * 实测（2026-10-10）从本机连 api.cloudflare.com 会**偶发连不上**（curl 报 `HTTP 000`，
+ * 同一句 SQL 隔一秒再跑就 200），而 `fetch` 在连不上时是**抛异常**的 ——
+ * 不接住就只甩出一段 node 堆栈，看不出到底哪坏了。
+ * SQL 写错（4xx）不重试：那重试多少次都一样。
+ */
+let res;
+let text;
+for (let attempt = 1; ; attempt++) {
+  try {
+    res = await fetch(API(account), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: sql,
+    });
+    text = await res.text();
+    break;
+  } catch (err) {
+    if (attempt >= 3) {
+      console.error(`连不上 Cloudflare 的查询接口（重试 3 次都失败）：${err.message}\n`
+        + '这是网络问题、不是 SQL 的问题 —— 换个网络或过一会儿重跑一次即可。');
+      process.exit(1);
+    }
+    await new Promise((r) => setTimeout(r, 800 * attempt));
+  }
+}
 
 if (!res.ok) {
   console.error(`查询失败：HTTP ${res.status}`);
