@@ -3859,3 +3859,105 @@ body.fc-has-mini .fc-clarity {
         transform: none;
     }
 }
+
+/* ---------------- 22. 简历页（/resume/）+ 头像下面的「个人简介」小条 ----------------
+   简历页本身没有专属样式：它直接复用第 21 节关于页那套（.fc-about-page /
+   .fc-about-body，都是现成玻璃卡），标题在 .fc-page-head 卡片里、正文在正文卡片里，
+   所以整页没有「直接压在背景图上」的文字，不需要底衬 —— 与关于页 / 技能页同一条约定。
+   下面这两个类是首页作者卡里的那一条。
+
+   要求是「横向跟头像一样大、纵向小一点、上面写四个字」，所以：
+     · **宽度是结构决定的，不是抄来的数字**：.fc-profile-id 是一列，列宽 = 头像宽，
+       小条 width:100% 撑满它。头像在 ≤768px 会缩到 60px，小条自动跟着缩。
+     · ⚠️ 代价是 .fc-profile-id 的宽度必须与 .fc-avatar 保持一致（这里 76px /
+       ≤768px 时 60px）。头像尺寸写在第 5 节的 .fc-avatar 上、以及第 9 节
+       ≤768px 那一档里 —— **改头像尺寸时这三处要一起改**，否则小条就跟头像不齐了。
+       之所以不写成变量，是不想动 .fc-avatar 那些已经稳定的取值。
+     · 高度固定 36px：手机上这就是整块的可点区域，36px 是站内约定的触摸下限
+       （比它更矮手指按不准）。宽度最小的一档是 60px，所以 36 永远小于宽 ——
+       「纵向比横向小」在任何断点都成立。
+     · 和「公告小标签」（第 21 节 .fc-profile-tag）刻意不同级：
+       那个是**强调色**胶囊（卡里唯一的通栏入口，要显眼），
+       这个是**中性**小块（--fc-skill-bg / --fc-skill-stroke，跟技能页的标签同一套
+       「比卡片亮一点点的静音块」令牌），字号也更小。两者一个在头像下、一个在卡片底边，
+       中间隔着统计和图标两排，不会看成两个并排的同级按钮。
+     · 圆角 / 悬停 / 聚焦一律沿用站内令牌（--fc-radius-pill / --fc-accent /
+       --fc-accent-ink / --fc-glass-stroke-hover），深浅色都跟着主题走，没有硬编码色值。 */
+.fc-profile-id {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    /* ⚠️ 必须与 .fc-avatar 的宽度一致，理由见上面那段注释 */
+    width: 76px;
+}
+
+.fc-profile-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    height: 36px;
+    padding: 0 6px;
+    border: 1px solid var(--fc-skill-stroke);
+    border-radius: var(--fc-radius-pill);
+    background: var(--fc-skill-bg);
+    color: var(--secondary);
+    font-size: 12px;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    transition: background 0.15s ease, border-color 0.15s ease,
+        color 0.15s ease, transform 0.15s ease;
+}
+
+/* 文案过长就省略号：显式写 min-width: 0 —— flex 子项默认 min-width: auto，
+   不写这个它就不肯收缩，省略号永远不出现（跟 .fc-profile-tag-text 同一个坑）。
+   有了它，后台把 label 改长了也只会截断，不会把小条顶得比头像宽。 */
+.fc-profile-badge-text {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* 悬停 / 按下 / 键盘聚焦：与那一排社交图标、公告小标签同一套手感 */
+.fc-profile-badge:hover {
+    background: var(--fc-accent);
+    border-color: var(--fc-accent);
+    color: var(--fc-accent-ink);
+    transform: translateY(-2px);
+}
+
+.fc-profile-badge:active {
+    transform: translateY(0) scale(0.96);
+}
+
+.fc-profile-badge:focus-visible {
+    outline: 2px solid var(--fc-accent);
+    outline-offset: 2px;
+}
+
+/* 手机那一档：头像变成 60px，小条跟着 60px 宽。字降到 11px ——
+   60px 里要塞下「个人简介」四个汉字（11px × 4 = 44px）加左右各 6px 内边距，
+   12px 的话就是 48 + 12 = 60，正好卡死没有余量，任何字体差异都会截断。 */
+@media screen and (max-width: 768px) {
+    .fc-profile-id {
+        width: 60px;
+    }
+
+    .fc-profile-badge {
+        font-size: 11px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fc-profile-badge {
+        transition: none;
+    }
+
+    .fc-profile-badge:hover {
+        transform: none;
+    }
+}

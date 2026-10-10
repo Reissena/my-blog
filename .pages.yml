@@ -161,6 +161,50 @@ content:
         options:
           media: images
 
+  # 个人简历页（content/resume/index.md → /resume/）
+  # · 单文件（singleton）集合：后台左侧会出现「个人简历」。
+  # · ⚠️ 这一页同时是**首页作者卡头像下面那条「个人简介」小条**的数据源：
+  #       小条上的字 ← label
+  #       小条点去哪 ← 这一页自己的网址
+  #   所以只改这里一处，简历页和首页那条就一起更新（与 about 集合同一套路）。
+  #   label 留空时首页那条退回显示页面标题。
+  # · ⚠️ 下面这些字段**必须写全**：Pages CMS 保存时会按 fields 重新拼 front matter，
+  #   没在这里声明的键会被丢掉（源码 lib/schema.ts 的 deepMap 只遍历 fields）。
+  #   因此这一页刻意**不用** front matter 里的 url / layout ——
+  #   网址 /resume/ 与所用模板都由 content/resume/ 这个目录名决定，后台怎么存都丢不掉。
+  - name: resume
+    label: 个人简历
+    type: file
+    path: content/resume/index.md
+    format: yaml-frontmatter
+    fields:
+      - name: title
+        label: 页面标题
+        type: string
+        required: true
+        options:
+          maxlength: 60
+
+      - name: subtitle
+        label: 副标题（标题下面的一句话，可以留空）
+        type: string
+        required: false
+        options:
+          maxlength: 160
+
+      - name: label
+        label: 首页头像下面那条小字（留空就显示上面的「页面标题」，太长会自动截断）
+        type: string
+        required: false
+        options:
+          maxlength: 12
+
+      - name: body
+        label: 正文
+        type: rich-text
+        options:
+          media: images
+
   # 技能 / 技术栈清单（页面 /skills/ 的内容全部读这个文件）
   # · data/skills.yaml 本身就是「分类数组」，所以这里用 type: file + list: true
   #   （list: true 用在 file 上 = 整个文件就是一个顶层数组，见 Pages CMS 文档的 List 一节）

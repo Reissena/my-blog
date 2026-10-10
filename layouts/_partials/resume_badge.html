@@ -1,0 +1,22 @@
+{{- /* =====================================================================
+     首页作者卡里、头像正下方的「个人简介」小条（→ /resume/）
+     ---------------------------------------------------------------------
+     · 数据**全部派生自简历页**（content/resume/index.md），后台里只改那一页：
+         · 链接目标 → 简历页自己的网址（跟着 Hugo 算，不写死 /resume/）
+         · 条上文案 → 简历页 front matter 的 label（空了就退回页面标题）
+       与 _partials/about_tag.html 是同一套路：一个数据源，首页跟着一起变。
+     · 结构就是一个普通 <a>，**不挂任何脚本** —— 站内跳转由 pjax 接管，
+       天然不会重复绑定。
+     · 宽度不在这里写：外层 .fc-profile-id 的宽度 = 头像宽度，这里 width: 100%
+       撑满那一列。所以「和头像一样宽」是结构决定的，≤768px 头像缩到 60px 时
+       这条自动跟着缩（见 fluent.css 第 22 节）。
+     · 文案过长一律省略号，绝不把这一列顶宽（.fc-profile-badge-text 上的
+       overflow + nowrap + ellipsis，以及它会用到的 min-width: 0）。
+     ===================================================================== */ -}}
+{{- $resume := site.GetPage "/resume" -}}
+{{- with $resume -}}
+{{- $text := .Params.label | default .Title -}}
+<a class="fc-profile-badge" href="{{ .RelPermalink }}" title="查看{{ .Title }}">
+    <span class="fc-profile-badge-text">{{ $text }}</span>
+</a>
+{{- end -}}

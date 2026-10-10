@@ -30,7 +30,19 @@
         <div class="fc-top">
             <section class="fc-profile-card fc-glass">
                 <div class="fc-profile-head">
-                    {{- partial "avatar.html" (dict "class" "fc-avatar" "size" 76) }}
+                    {{- /* 头像 + 正下方那条「个人简介」装在同一列里（.fc-profile-id）：
+                           这一列的宽度**由头像决定**，小条用 width:100% 撑满它，
+                           于是「小条和头像一样宽」是结构决定的，不写死像素值。
+                           放头像正下方而不是卡片底部的动作区，理由：
+                             · 宽度锁死在头像那一列 → 读起来像「头像自己的入口」，
+                               而不是卡片级的第二个按钮；
+                             · 卡片底部留给公告小标签和联系方式那一排，
+                               两个跳转入口不会挨在一起变成两个同级按钮。
+                           两种入口的视觉层级也刻意分开（见 fluent.css 第 22 节）。 */ -}}
+                    <div class="fc-profile-id">
+                        {{- partial "avatar.html" (dict "class" "fc-avatar" "size" 76) }}
+                        {{- partial "resume_badge.html" . }}
+                    </div>
                     <div class="fc-profile-text">
                         <h1 class="fc-profile-name">
                             {{- /* 这里是「人名」不是站名，单一数据源见 partials/person_name.html */ -}}
