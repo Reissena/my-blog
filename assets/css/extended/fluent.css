@@ -1799,8 +1799,9 @@ a.fc-pager-link:hover {
     gap: 10px;
 }
 
-/* 链接与「点击复制」按钮共用一套外观（QQ / 邮箱是 button，
-   GitHub / RSS 还是 a），保持一致：同样尺寸、圆角、悬停与按下效果、同一套颜色令牌 */
+/* 链接与「点击复制」按钮共用一套外观（GitHub / B 站 / 网易云是 a，
+   QQ / 邮箱 / RSS 是 button），保持一致：同样尺寸、圆角、悬停与按下效果、同一套颜色令牌。
+   ⚠️ 选择器写的是 a, button 两个都在 —— 少写一个，那一排里对应的图标就会掉回浏览器默认样式 */
 .fc-profile-social a,
 .fc-profile-social button {
     display: grid;

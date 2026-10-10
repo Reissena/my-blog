@@ -91,7 +91,7 @@
 <script defer src="{{ $bgjs.RelPermalink }}" integrity="{{ $bgjs.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- end -}}
 
-{{- /* 联系方式一键复制（QQ / 邮箱）：事件委托，pjax 换页后按钮照样能用；
+{{- /* 联系方式一键复制（QQ / 邮箱 / RSS 订阅地址）：事件委托，pjax 换页后按钮照样能用；
        放在 with $music 之外，没有音乐数据时也照常加载 */ -}}
 {{- $copyjs := resources.Get "js/copy-contact.js" | resources.Minify | resources.Fingerprint -}}
 <script defer src="{{ $copyjs.RelPermalink }}" integrity="{{ $copyjs.Data.Integrity }}" crossorigin="anonymous"></script>

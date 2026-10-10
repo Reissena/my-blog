@@ -73,11 +73,14 @@
                     </a>
                 </div>
 
-                {{- /* 社交 / 联系方式：GitHub、B 站、RSS 是链接（外链都新标签页打开）；
-                       QQ、邮箱是「点一下复制」，复制的值与提示语写在 data-copy /
+                {{- /* 社交 / 联系方式：GitHub、B 站是链接（外链都新标签页打开）；
+                       QQ、邮箱、RSS 是「点一下复制」，复制的值与提示语写在 data-copy /
                        data-copy-done 上，逻辑（含降级与 toast）在
                        assets/js/copy-contact.js，事件委托所以 pjax 换页后照样能用。
-                       B 站地址只保留干净路径，不带任何 ? 查询参数。 */ -}}
+                       B 站地址只保留干净路径，不带任何 ? 查询参数。
+                       ⚠️ RSS **故意不做成链接**：点进去只是浏览器打开 index.xml，
+                       满屏 XML 源码，访客什么也拿不到 —— 而 RSS 的正确用法正是
+                       「把地址粘进阅读器」。所以它和 QQ / 邮箱一样是复制按钮。 */ -}}
                 <div class="fc-profile-social">
                     <a href="https://github.com/Reissena" target="_blank" rel="noopener noreferrer" aria-label="GitHub"
                         title="GitHub">
@@ -132,14 +135,21 @@
                             <path d="m4 7.5 8 5.5 8-5.5" />
                         </svg>
                     </button>
-                    <a href="{{ "index.xml" | relLangURL }}" aria-label="RSS 订阅" title="RSS 订阅">
+                    {{- /* RSS 订阅地址：从 Hugo 的 RSS 输出格式里取**真实地址**（自带域名），
+                           不把 index.xml 写死 —— 以后改 hugo.toml 的 [outputs] 或换域名，
+                           这里跟着变，不会漏改；万一取不到就退回 baseURL + index.xml。
+                           ⚠️ 必须是**绝对地址**：相对路径 /index.xml 粘进阅读器会失效。 */ -}}
+                    {{- $rssURL := "index.xml" | absURL -}}
+                    {{- with site.Home.OutputFormats.Get "rss" }}{{ $rssURL = .Permalink }}{{ end -}}
+                    <button type="button" data-copy="{{ $rssURL }}" data-copy-done="已复制 RSS 订阅地址"
+                        aria-label="复制 RSS 订阅地址" title="复制 RSS 订阅地址：{{ $rssURL }}">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M5 11a8 8 0 0 1 8 8" />
                             <path d="M5 5a14 14 0 0 1 14 14" />
                             <circle cx="6" cy="18" r="1.4" fill="currentColor" stroke="none" />
                         </svg>
-                    </a>
+                    </button>
                 </div>
 
                 {{- /* 公告小标签（只这一个）：数据派生自关于页，改那一页这里就跟着变。
