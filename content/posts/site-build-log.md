@@ -2,7 +2,7 @@
 title: 这个站是怎么被我折腾出来的
 date: 2026-10-10
 draft: false
-pinned: false
+pinned: true
 tags:
   - Hugo
   - Cloudflare
