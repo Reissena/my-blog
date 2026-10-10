@@ -1,7 +1,26 @@
-﻿# Cloudflare Worker 配置（纯静态资源站点，无 Worker 脚本）
+# Cloudflare Worker 配置
 # 构建产物由 Hugo 生成在 ./public
 name = "my-blog"
 compatibility_date = "2026-10-09"
 
+# 本站唯一的服务端逻辑：页面访问打点（见 worker/index.mjs 与 docs/访问统计.md）。
+# ⚠️ 在这行之前，这个 Worker 是「没有脚本」的纯静态托管 —— 没有脚本就没有出错的机会；
+#    加了它以后，**每个请求都会先过 Worker**，所以那段代码里对「响应原样返回」的
+#    守卫不是可选的，删了就等于把统计变成了故障源。
+main = "./worker/index.mjs"
+
 [assets]
 directory = "./public"
+# 给 Worker 一个资源绑定：除打点外的所有请求都原样走 env.ASSETS.fetch(request) 取回，
+# 响应内容/状态/头与加统计之前完全一致。
+binding = "ASSETS"
+# ⚠️ 必须 true。默认值 false 是「静态资源优先」：命中的请求**根本不会调用 Worker 脚本**，
+#    打点一次都不会触发，而且不报错 —— 属于最难发现的那种坏法。
+#    代价是图片/CSS/JS 也要先过一次 Worker（正文里那次 env.ASSETS.fetch 仍在同一处边缘节点，
+#    实测页面耗时无可见变化）。想给静态资源省掉这次调用，可改成路径白名单数组，见文档。
+run_worker_first = true
+
+# 访问统计的落库位置。数据集不需要手动创建，第一次写入时自动建。
+[[analytics_engine_datasets]]
+binding = "VISITS"
+dataset = "my_blog_pageviews"

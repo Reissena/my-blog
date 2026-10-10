@@ -303,6 +303,11 @@ Workers 现在也支持直接托管静态资源（Static Assets），比 Pages �
    not_found_handling = "404-page"
    ```
 
+   > ⚠️ 上面是**当初首次接入时**的写法，只作历史参考。
+   > 仓库里现在的 `wrangler.toml` 还多了脚本入口、资源绑定、`run_worker_first`
+   > 与 Analytics Engine 绑定（访问统计用），**以那个文件为准**，见
+   > [`docs/技术总览.md`](docs/技术总览.md) §2.2 / §2.4。
+
 3. 构建 + 发布：
 
    ```bash

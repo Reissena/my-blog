@@ -84,4 +84,15 @@ $env:HUGO_CACHEDIR = "D:\dsh\个人博客\my-blog\.hugo_cache"   # 必须绝对�
 ..\tools\hugo\hugo.exe --minify --gc
 ```
 
+⚠️ **改过 `worker/`（服务端代码）或 `wrangler.toml` 的话，构建绿了不算完** ——
+Hugo 根本不编译它们。多跑一步：
+
+```powershell
+node tools/test-pageview.mjs        # 57 项断言：口径 + 「打点坏了页面也必须照常返回」
+```
+
+这一段的判定规则、隐私处理、怎么查看与回滚，见 [`docs/访问统计.md`](docs/访问统计.md)。
+⚠️ 本地**验不到**「数据真的写进 Analytics Engine 了」（`wrangler dev` 的统计绑定是空实现），
+那一步只能上线后去 Cloudflare 后台看写入记录。
+
 推完顺手看一眼 GitHub Actions 有没有变绿 —— 那才是真正上线的那道关。
