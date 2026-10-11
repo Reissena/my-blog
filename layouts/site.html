@@ -42,58 +42,44 @@
 {{- /* 已运行天数：起始日与算法都在这个 partial 里，页脚状态栏调的是同一个 */ -}}
 {{- $up := partial "site_uptime.html" . -}}
 
-{{- /* ---------------- 可选：累计访问量（构建时查 Analytics Engine） ----------------
-       三条防线，缺一条都可能把「拿不到一个数字」升级成「整站构建失败」：
-         ① 没凭据 → 连请求都不发（线上就是这条路，页面照常是完整的）；
-         ② 请求走 try：网络不通、令牌不对、权限不够（403）、数据集还没建（404）
-            全都只产生一个 warning，构建继续、这一张卡片不渲染；
-         ③ 解析出来的值只有在「是个正经数字」时才用，否则一样当没有。
-       ⚠️ 令牌只放在 Authorization 头里，绝不进 URL（URL 会被写进日志与缓存键）。 */ -}}
+{{- /* ---------------- 可选：累计访问量 ----------------
+       数字**不是**这里查的：构建时由 tools/fetch-site-stats.mjs 查一次、写进
+       data/site_stats.yaml（那个文件不进仓库，见 .gitignore），模板只负责读它。
+
+       为什么不让模板自己去查（上一版就是那么做的，已经换掉了）：
+         · 模板里查（resources.GetRemote）会让**每一次构建**都依赖一次网络请求，
+           还要在 hugo.toml 里给 os.Getenv 开白名单、在模板里解析 JSON ——
+           失败面全都压在「构建」上：接口抖一下就可能让站发不出去。
+         · 换成脚本之后，失败只有一个后果：**不写文件**。Hugo 连网络都不碰，
+           页面照常完整（少一张卡片而已）。这条别改回去。
+
+       三条防线（缺一条都可能把「少一个数字」升级成「整站发不出去」）：
+         ① 文件不存在 / 没有 visits / 没有 updated → 整张卡片不渲染（不留空框、不显示 0）；
+         ② visits 只在**类型确实是数字**时才用。⚠️ YAML 里的 1234 解出来是 uint64，
+            不是 int —— 类型列表里少写一个 uint64，一个好好的数字就会被静默丢掉
+            （实测：`visits: 1234` 的 %T 是 uint64）；
+         ③ 全部包在 with 里：字段形状变了也只是少一张卡片，模板不会报错。 */ -}}
 {{- $visits := 0 -}}
-{{- $token := os.Getenv "CLOUDFLARE_API_TOKEN" -}}
-{{- if $token -}}
-{{- /* 账号 ID 不是敏感信息：与 .github/workflows/deploy.yml 里写死的是同一个
-       （tools/query-visits.mjs 也是从那个文件读的）。它变了这里也要跟着改。 */ -}}
-{{- $account := os.Getenv "CLOUDFLARE_ACCOUNT_ID" | default "f1788a61e7a94f861c6df693513f68d1" -}}
-{{- $dataset := "my_blog_pageviews" -}}
-{{- $sql := printf "SELECT SUM(_sample_interval * double1) AS pv FROM %s" $dataset -}}
-{{- $url := printf "https://api.cloudflare.com/client/v4/accounts/%s/analytics_engine/sql" $account -}}
-{{- /* key 里带上日期：同一天重复构建直接用 Hugo 的缓存（省一次接口调用），
-       跨天则一定会重新查一次 —— 页面上的「数据时间」才不会是几天前的旧数 */ -}}
-{{- $opts := dict
-    "method" "POST"
-    "headers" (dict "Authorization" (printf "Bearer %s" $token) "Content-Type" "text/plain")
-    "body" $sql
-    "key" (printf "fc-visits-total-%s-%s" $account (now.UTC.Format "2006-01-02"))
-    "timeout" "10s" -}}
-{{- $res := try (resources.GetRemote $url $opts) -}}
-{{- with $res.Err -}}
-    {{- warnf "站点数据页：累计访问量这次没查到（页面照常渲染，只是少一张卡片）：%s" . -}}
-{{- else with $res.Value -}}
-    {{- $payload := .Content | transform.Unmarshal -}}
-    {{- with $payload.data -}}
-        {{- with index . 0 -}}
-            {{- with index . "pv" -}}
-                {{- /* 只在拿到的确实是数字时才用。Cloudflare 返回的是 JSON 数字（float64），
-                       但万一哪天变成字符串或别的形状：`int` 一个非数字字符串会**直接让构建失败**，
-                       那就把「少一个数字」升级成了「站发不出去」—— 宁可不要这个数，
-                       并在构建日志里留一句 warning，也不要赌它的类型。 */ -}}
-                {{- if in (slice "float64" "int" "int64" "json.Number") (printf "%T" .) -}}
-                    {{- $visits = int . -}}
-                {{- else -}}
-                    {{- warnf "站点数据页：访问量字段的类型不是数字（%s），这次不显示这张卡片" (printf "%T" .) -}}
-                {{- end -}}
-            {{- end -}}
+{{- $visitsAt := "" -}}
+{{- with hugo.Data.site_stats -}}
+    {{- $v := .visits -}}
+    {{- $d := .updated -}}
+    {{- if and $v $d -}}
+        {{- if in (slice "int" "int64" "uint" "uint32" "uint64" "float64" "json.Number") (printf "%T" $v) -}}
+            {{- $visits = int $v -}}
+            {{- $visitsAt = printf "%v" $d -}}
+        {{- else -}}
+            {{- warnf "站点数据页：data/site_stats.yaml 里的 visits 不是数字（%s），这次不显示这张卡片" (printf "%T" $v) -}}
         {{- end -}}
     {{- end -}}
 {{- end -}}
-{{- end -}}
 
-{{- /* 北京时间（UTC+8）的构建日期。不用 time.LoadLocation：那个依赖构建机上的
+{{- /* 北京时间（UTC+8）的构建时间。不用 time.LoadLocation：那个依赖构建机上的
        tzdata，换台机器可能直接报错；加 8 小时是等价的、也不会失败。
-       页脚那个时钟用的是 Intl 的 Asia/Shanghai，两者在「日期」这一级一致。 */ -}}
+       页脚那个时钟用的是 Intl 的 Asia/Shanghai，两者在「分钟」这一级一致。
+       ⚠️ 这个时间是「这一页什么时候生成的」，不是「访问量数据的时间」——
+       后者由 data/site_stats.yaml 的 updated 字段单独标注。 */ -}}
 {{- $builtAt := (now.UTC.Add (time.ParseDuration "8h")).Format "2006-01-02 15:04" -}}
-{{- $builtDay := (now.UTC.Add (time.ParseDuration "8h")).Format "2006-01-02" -}}
 
 <div class="fc-layout fc-layout--article">
     {{- partial "site_nav.html" . }}
@@ -129,7 +115,7 @@
                 <li class="fc-stat fc-glass">
                     <span class="fc-stat-num">{{ $visits }}</span>
                     <span class="fc-stat-label">次页面访问</span>
-                    <span class="fc-stat-src">截至 {{ $builtDay }}</span>
+                    <span class="fc-stat-src">截至 {{ $visitsAt }}</span>
                 </li>
                 {{- end }}
             </ul>
@@ -154,9 +140,12 @@
                         {{- if gt $visits 0 }}
                         来自本站自己的服务端统计（Cloudflare Analytics Engine），
                         <strong>只数页面</strong>、不数图片和样式；同一个人的多次访问按同一份匿名指纹汇总。
+                        这个数是<strong>每次部署时查一次</strong>写进页面的，不是实时数字；
+                        Analytics Engine 只保留 3 个月，所以「累计」指的是保留期内的总和。
                         {{- else }}
-                        <strong>这一页没有显示访问次数</strong> —— 它需要构建时提供 Cloudflare 的只读凭据才查得到，
-                        平时（包括自动部署的那次构建）都拿不到，所以这一项干脆不显示。
+                        <strong>这一页这次没有显示访问次数</strong> —— 它在构建时单独去查一次
+                        Cloudflare，要仓库里配好只读凭据才查得到；<strong>查不到就整张卡片不显示</strong>
+                        （不留空框、也不拿 0 充数），网站照常部署。
                         {{- end }}
                     </dd>
                 </dl>

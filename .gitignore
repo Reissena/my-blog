@@ -16,6 +16,13 @@ Thumbs.db
 # Hugo cache
 .hugo_cache/
 
+# /site/ 站点数据页的访问量数据：每次构建由 tools/fetch-site-stats.mjs 现查现写，
+# **不进仓库**（里面是运行数据，会天天变；提交一份反而会让页面显示过期的数）。
+# 这样「文件在不在」就等于「这次构建到底查没查到」，页面的降级判断只有一个依据。
+# 详见 docs/访问统计.md §7.5。
+data/site_stats.yaml
+data/site_stats.yaml.tmp
+
 # Wrangler local cache (机器相关，不要提交)
 .wrangler/
 

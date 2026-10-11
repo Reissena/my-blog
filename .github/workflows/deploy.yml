@@ -43,13 +43,32 @@ jobs:
           hugo-version: '0.167.0'
           extended: true
 
-      # 3) 构建站点。
+      # 3) 站点数据页 /site/ 的「累计访问量」：**构建时**查一次 Cloudflare
+      #    Analytics Engine，把结果写进 data/site_stats.yaml（那个文件不进仓库，
+      #    见 .gitignore），紧接着的 hugo 构建会读它渲染那一张卡片。
+      #    · 令牌走 env 传入，**绝不写进 run: 那一行** —— 命令行会原样出现在日志里；
+      #      脚本自己也做了三件事：不打印令牌、不打印响应体、所有输出过一遍
+      #      「令牌串替换成 ***」的保险（见 tools/fetch-site-stats.mjs 顶部注释）。
+      #    · 两道降级保险：脚本内部失败一律 exit 0 只跳过写文件；这里的
+      #      continue-on-error 再兜一层（万一是 node 自身起不来）。结果是：
+      #      查询出任何问题都只是「这一页少一张卡片」，绝不让整次部署失败。
+      #    · 没配 CF_ANALYTICS_TOKEN 时脚本会自己跳过 —— 这就是现在的默认状态，
+      #      也是「优雅降级」那条路。配好 Secret 之后不用改这里任何东西。
+      - name: 查 /site/ 的累计访问量（写 data/site_stats.yaml）
+        continue-on-error: true
+        env:
+          CF_ANALYTICS_TOKEN: ${{ secrets.CF_ANALYTICS_TOKEN }}
+        run: node tools/fetch-site-stats.mjs
+
+      # 4) 构建站点。
       #    产物输出到 ./public —— 正好是 wrangler.toml 里 [assets] directory 指定的目录。
       #    --minify 压缩 HTML/CSS/JS，--gc 顺手清理无用缓存。
+      #    ⚠️ 这一步**不会**碰网络：访问量是上一步查好写进 data/ 的，
+      #      所以接口抖一下只影响那一张卡片，不会影响这次构建能不能成功。
       - name: 构建站点
         run: hugo --minify --gc
 
-      # 4) 先自检令牌：把「令牌有效 / 无效」直接打到日志里，
+      # 5) 先自检令牌：把「令牌有效 / 无效」直接打到日志里，
       #    这样万一后面还失败，一眼能分清是令牌问题还是 wrangler 问题。
       #    · 只打印 HTTP 状态码 + Cloudflare 的响应体，绝不打印令牌本身
       #      （响应体里只有令牌的 id / 状态，没有令牌值，可以安全打印）
@@ -66,7 +85,7 @@ jobs:
           cat /tmp/verify.json
           test "$code" = "200"
 
-      # 5) 部署到 Cloudflare Workers（worker 名 my-blog，配置见仓库根的 wrangler.toml）。
+      # 6) 部署到 Cloudflare Workers（worker 名 my-blog，配置见仓库根的 wrangler.toml）。
       #    · CLOUDFLARE_API_TOKEN 从仓库 secrets 读取，需要先在
       #      Settings → Secrets and variables → Actions → New repository secret
       #      里添加，名字必须叫 CLOUDFLARE_API_TOKEN；

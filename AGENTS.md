@@ -139,17 +139,25 @@ node tools/test-pageview.mjs        # 57 项断言：口径 + 「打点坏了页
 ⚠️ 本地**验不到**「数据真的写进 Analytics Engine 了」（`wrangler dev` 的统计绑定是空实现），
 那一步只能上线后去 Cloudflare 后台看写入记录。
 
-⚠️ **改过 `layouts/site.html` / `hugo.toml` 的 `[security.funcs]` / `/site/` 相关模板的话，
-再补一次「没凭据也要能构建」**（那一页会在构建时查 Cloudflare，最坏情况是把
-「少一个数字」升级成「站发不出去」）：
+⚠️ **改过 `layouts/site.html` / `tools/fetch-site-stats.mjs` / `deploy.yml` 那一步的话，
+再补一次「没凭据也要能构建」**（`/site/` 的累计访问量在构建时会去查 Cloudflare，
+最坏情况是把「少一个数字」升级成「站发不出去」）：
 
 ```powershell
-$env:CLOUDFLARE_API_TOKEN = "随便一个假值"     # 故意让请求失败
-..\tools\hugo\hugo.exe --minify --gc --destination ..\..\fc-tmp-build
-# 期望：exit 0、只有一条中文 WARN、/site/ 上仍是三张卡片
-Remove-Item Env:\CLOUDFLARE_API_TOKEN
+# ① 没凭据（线上默认就是这个状态）
+Remove-Item Env:\CF_ANALYTICS_TOKEN -ErrorAction SilentlyContinue
+Remove-Item Env:\CLOUDFLARE_API_TOKEN -ErrorAction SilentlyContinue
+Remove-Item data\site_stats.yaml -ErrorAction SilentlyContinue   # 生成物，删掉不影响任何东西
+..\tools\hugo\hugo.exe --minify --gc
+# 期望：exit 0、只有主题那两条 deprecation WARN、/site/ 上仍是三张卡片
+
+# ② 故意给个坏令牌
+$env:CF_ANALYTICS_TOKEN = "随便一个假值"
+node tools/fetch-site-stats.mjs      # 期望：exit 0、只有一行中文说明、**日志里没有令牌值**
+Remove-Item Env:\CF_ANALYTICS_TOKEN
 ```
 
-`/site/` 为什么这么设计、四个数字各自的来源，见 [`docs/技术总览.md`](docs/技术总览.md) §4.19。
+`/site/` 为什么这么设计、四个数字各自的来源、失败矩阵，见
+[`docs/技术总览.md`](docs/技术总览.md) §4.19 与 [`docs/访问统计.md`](docs/访问统计.md) §7.5。
 
 推完顺手看一眼 GitHub Actions 有没有变绿 —— 那才是真正上线的那道关。
