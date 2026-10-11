@@ -3,7 +3,7 @@
 > A Chinese personal blog built with Hugo, served from Cloudflare Workers — hand-written front end, no third-party JS frameworks.
 
 用 Hugo 生成的纯静态博客，跑在 Cloudflare Workers 上；服务端只有一段 Worker 脚本，只做页面访问打点。
-前端交互（无刷新切页、音乐播放器、背景轮换、清晰度滑块）全部是自己写的原生 JS / CSS，仓库里没有 `package.json`。
+前端交互（无刷新切页、音乐播放器、背景轮换、清晰度滑块、正文图片灯箱、阅读进度条）全部是自己写的原生 JS / CSS，仓库里没有 `package.json`。
 
 线上地址：**<https://yunblog.com.cn>**
 
@@ -13,6 +13,9 @@
 - **全站只有一个音频对象**（`new Audio()`，不在 DOM 里）：首页播放卡、页脚迷你播放条、`/music/` 页是它的三种视图。音频放在 Cloudflare R2，仓库里只留封面与歌词。
 - **前端零第三方依赖**：脚本全部手写，由 Hugo 资源管线压缩、加指纹、带 SRI。注意：线上页面确实有 **1 个**外链脚本 —— Cloudflare 在代理层自动注入的 Web Analytics beacon，仓库里找不到它（见 [`docs/技术总览.md`](docs/技术总览.md) §1.3）。
 - **左下角「背景清晰度」滑块**：遮罩不透明度 = 100 − 清晰度，默认档写在 `hugo.toml` 的 `params.bgClarityDefault`。
+- **正文图片点开看大图**：原生 `<dialog>` + `showModal()`（焦点陷阱、Esc 关闭、遮罩层全是浏览器给的），只在文章正文里生效 —— 封面图 / 头像 / 图标排 / 播放器封面都不受影响。
+- **阅读进度条**：只在 `/posts/` 下的正文页出现，粘在粘性页头的下沿（z-index 比页头低一层，永远不会盖住导航），pjax 换页即归零。
+- **`/site/` 站点数据页**：文章数 / 音乐数 / 已运行天数都是**构建时**算的，页面上不做任何实时请求；累计访问量拿不到就不显示（只公开汇总量，没有任何访问者层面的数据）。
 - **服务端访问统计**（Worker + Analytics Engine）只数页面、**不存原始 IP**：去重指纹是 `SHA-256(IP + UA + 当天盐)` 的前 32 位，盐每天换。
 
 ## 技术栈与架构
@@ -69,7 +72,7 @@ hugo.toml          站点总配置
 wrangler.toml      Worker 配置（脚本入口 + 资源目录 + 统计绑定）
 worker/index.mjs   唯一的服务端逻辑：页面访问打点
 .pages.yml         网页后台能改什么
-content/           页面与文章
+content/           页面与文章（site.md = /site/ 站点数据页）
 data/              清单：music.yaml、skills.yaml
 layouts/           模板（覆盖主题同名文件）
 assets/            fluent.css、全部 JS、走资源管线的图
@@ -99,4 +102,7 @@ themes/PaperMod    主题（submodule，不改）
 - **`run_worker_first = true` 不能删**：Workers 默认「静态资源优先」，命中文件的请求根本不会执行 Worker 脚本，打点会一次都不触发、而且不报错。
 - **打点与页面响应彻底解耦**：先取响应，再异步记一笔，最后原样返回那个响应对象 —— 统计坏了只会少一行数据，不会让访客看到白屏。
 - **默认清晰度只有 `hugo.toml` 一处**：模板注入 `--fc-clarity`，滑块的 `<input value>` 也读它；滑块故意不写 `localStorage`。
-- 28 条已经踩过的坑记在 [`docs/技术总览.md`](docs/技术总览.md) §5.3，动手前扫一眼能省一半返工。
+- **灯箱的对话框建一次、用一辈子**：它挂在 `<body>` 上（在 pjax 的替换范围之外），所以连着切多少页都只有那一个 `dialog` —— 「不会重复弹出」是结构决定的，不是靠计数器。
+- **进度条的位置是量出来的**：页头高度实测在 1280px 下是 63px、1024px 是 99px、≤880px 折行后是 113px，写死任何一个值都会错两档。
+- **`/site/` 的「已运行天数」与页脚那句「本站已稳定运行」共用同一个 partial**（`_partials/site_uptime.html`）：起算日改 `hugo.toml` 一处，两边一起变。
+- 34 条已经踩过的坑记在 [`docs/技术总览.md`](docs/技术总览.md) §5.3，动手前扫一眼能省一半返工。

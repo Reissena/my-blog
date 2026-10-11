@@ -2903,12 +2903,72 @@ body.fc-has-mini .fc-statusbar-wrap {
     height: 14px;
 }
 
+/* ④ 站点数据页 /site/ 的入口（整条状态栏里唯一的链接）。
+   为什么塞在这儿而不是顶部导航 / 左栏目录：那两处共用同一份 [[menu.main]]（第 4.6 节），
+   加一项两边都会多出来，而站主要求保持 8 项。放在状态栏里还顺手解决了「压在背景上的
+   文字要有底衬」那条 —— 它在玻璃卡里，卡片本身就是底衬。
+   配色沿用「静音块」那套令牌（--fc-skill-bg / --fc-skill-stroke + --primary 字），
+   悬停才换成强调色底 + --fc-accent-ink 字（与首页那条「个人简历」小条同一手感）。
+   min-height 32px：整条状态栏都是这个尺度（旁边的技术栈胶囊约 24px），
+   放大成 44px 会把这条状态栏顶得比时钟还高，不值得 —— 它不是主入口。 */
+.fc-statusbar-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 0 14px;
+    border: 1px solid var(--fc-skill-stroke);
+    border-radius: var(--fc-radius-pill);
+    background: var(--fc-skill-bg);
+    color: var(--primary);
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s ease, border-color 0.15s ease,
+        color 0.15s ease, transform 0.15s ease;
+}
+
+.fc-statusbar-link-arrow {
+    color: var(--fc-accent);
+    font-size: 13px;
+    transition: transform 0.15s ease;
+}
+
+.fc-statusbar-link:hover {
+    background: var(--fc-accent);
+    border-color: var(--fc-accent);
+    color: var(--fc-accent-ink);
+    transform: translateY(-2px);
+}
+
+.fc-statusbar-link:hover .fc-statusbar-link-arrow {
+    color: var(--fc-accent-ink);
+}
+
+.fc-statusbar-link:active {
+    transform: translateY(0) scale(0.97);
+}
+
+.fc-statusbar-link:focus-visible {
+    outline: 2px solid var(--fc-accent);
+    outline-offset: 2px;
+}
+
 /* 开启「减少动效」：圆点不呼吸（静止），时钟照常走 */
 @media (prefers-reduced-motion: reduce) {
 
     .fc-statusbar-dot {
         animation: none;
         box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.18);
+    }
+
+    .fc-statusbar-link,
+    .fc-statusbar-link-arrow {
+        transition: none;
+    }
+
+    .fc-statusbar-link:hover {
+        transform: none;
     }
 }
 
@@ -3962,3 +4022,350 @@ body.fc-has-mini .fc-clarity {
         transform: none;
     }
 }
+
+/* ---------------- 23. 正文图片灯箱（原生 <dialog>） ----------------
+   结构由 assets/js/lightbox.js 建（一个 <dialog>，里面只有关闭按钮和一张大图），
+   这里只管长相。几处**不是随便写的**取值：
+
+   · dialog 铺满视口用的是 `inset: 0` + `width/height: auto`，**不用 100vw/100vh**：
+     100vw 把滚动条宽度也算进去，桌面端会多出一条横向滚动条（本站 body 上有
+     overflow-x: clip，滚动条未必看得见，但内容是会被裁的）。
+   · padding 就是「大图四周的留白」：dialog 是 border-box，inset:0 + padding 24px
+     之后内容区正好是「视口 − 48px」，图片 max-width/height:100% 就永远装得下 ——
+     390px 上也不会溢出。
+   · display 只在 [open] 时改成 flex：直接写 dialog.fc-lightbox{display:flex} 会盖掉
+     浏览器那句 dialog:not([open]){display:none}，结果**关掉的对话框照样显示**。
+   · z-index 一个都不用写：showModal() 打开后元素进入浏览器**顶层（top layer）**，
+     天生在第 1.4 节那张 z-index 阶梯之上，也不会被 body 的 overflow-x: clip 裁到。
+   · ::backdrop 是浏览器给的遮罩层，深浅色各跟主题走；它不是 dialog 的背景，
+     所以 dialog 自己的 background 必须是 transparent。 */
+dialog.fc-lightbox {
+    inset: 0;
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 24px;
+    border: 0;
+    background: transparent;
+    align-items: center;
+    justify-content: center;
+}
+
+dialog.fc-lightbox[open] {
+    display: flex;
+}
+
+.fc-lightbox::backdrop {
+    background: rgba(10, 12, 16, 0.74);
+    -webkit-backdrop-filter: blur(8px) saturate(1.2);
+    backdrop-filter: blur(8px) saturate(1.2);
+}
+
+.fc-lightbox-img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: var(--fc-radius-inner);
+    box-shadow: var(--fc-shadow-hover);
+    object-fit: contain;
+    animation: fc-lightbox-in 0.16s ease-out;
+}
+
+@keyframes fc-lightbox-in {
+    from {
+        opacity: 0;
+        transform: scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* 关闭按钮：44px 圆形玻璃按钮（站内约定的触摸下限），压在图片右上角。
+   它必须能被键盘 Tab 到 —— showModal() 会把焦点送进对话框，第一个可聚焦元素
+   就是这个按钮，所以「打开后按回车 = 关闭」也是通顺的。 */
+.fc-lightbox-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 50%;
+    background: rgba(20, 22, 26, 0.55);
+    color: #fff;
+    cursor: pointer;
+    -webkit-backdrop-filter: var(--fc-blur);
+    backdrop-filter: var(--fc-blur);
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.fc-lightbox-close svg {
+    width: 18px;
+    height: 18px;
+}
+
+.fc-lightbox-close:hover {
+    background: var(--fc-accent);
+    border-color: var(--fc-accent);
+    color: var(--fc-accent-ink);
+    transform: scale(1.06);
+}
+
+.fc-lightbox-close:active {
+    transform: scale(0.94);
+}
+
+.fc-lightbox-close:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 3px;
+}
+
+/* 正文里「可以点开放大」的图片：换鼠标指针 + 键盘聚焦时给一圈强调色描边。
+   这两条都挂着 data-fc-zoom 属性，所以只有被脚本加工过的图片才有 ——
+   封面图 / 头像 / 图标排 / 播放器封面不会莫名其妙变成「可点」的样子。 */
+.fc-article .post-content img[data-fc-zoom="1"] {
+    cursor: zoom-in;
+}
+
+.fc-article .post-content img[data-fc-zoom="1"]:focus-visible {
+    outline: 2px solid var(--fc-accent);
+    outline-offset: 3px;
+}
+
+@media screen and (max-width: 768px) {
+
+    dialog.fc-lightbox {
+        padding: 16px;
+    }
+
+    .fc-lightbox-close {
+        top: 10px;
+        right: 10px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .fc-lightbox-img {
+        animation: none;
+    }
+
+    .fc-lightbox-close {
+        transition: none;
+    }
+
+    .fc-lightbox-close:hover {
+        transform: none;
+    }
+}
+
+/* ---------------- 24. 阅读进度条（只在文章页） ----------------
+   DOM 由 layouts/single.html 渲染，而且**只有 .Section == "posts" 的正文页才渲染**
+   （首页、列表、归档、标签、技能、音乐、关于、简历、搜索都没有这个元素）。
+
+   位置：粘在粘性页头的**下沿**，top = 页头实测高度（--fc-header-h，脚本量的；
+   下面的 63px = 1280px 视口下实测的页头高度，只是脚本还没跑到时的兜底）。**z-index: 49 —— 故意比页头的 50 低**：
+   这样即使页头高度量矮了、或者中间宽度折了行没跟上，最坏也只是被页头压住一点，
+   绝不会反过来盖住导航、更不会挡掉导航的点击。
+   为什么不在页面底部：底部已经被迷你播放条占了（≤768px 时它是 left/right 12px 的
+   贴底通栏、z-index 60），左下角还有清晰度滑块与樱花开关 —— 放底部必然打架。
+   pointer-events: none：它是一条 3px 的装饰线，绝不许吃掉页头的点击。 */
+.fc-progress {
+    /* 没有 JS 就不出现（脚本跑到后给 <html> 加 data-fc-progress）。
+       这样「脚本挂了」的表现是少一根装饰线，而不是页面上多一根永远 0% 的横条。 */
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: var(--fc-header-h, 63px);
+    z-index: 49;
+    height: 3px;
+    background: var(--fc-accent-soft);
+    pointer-events: none;
+}
+
+html[data-fc-progress="1"] .fc-progress {
+    display: block;
+}
+
+.fc-progress-fill {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: 0 var(--fc-radius-pill) var(--fc-radius-pill) 0;
+    background: var(--fc-accent);
+    transition: width 0.12s linear;
+}
+
+/* 「减少动效」：过渡关掉，宽度跟手即时到位（不给动画本身就是减少动效的写法） */
+@media (prefers-reduced-motion: reduce) {
+
+    .fc-progress-fill {
+        transition: none;
+    }
+}
+
+/* ---------------- 25. 站点数据页（/site/） ----------------
+   页面结构见 layouts/site.html：页头卡片 + 一排数字卡 + 一张「数字怎么来的」说明卡。
+   整页没有「直接压在背景图上」的文字（标题在 .fc-page-head 里、数字与说明都在玻璃卡里），
+   所以不需要底衬 —— 与技能页 / 关于页 / 简历页同一条约定。
+   数字卡用 auto-fit：三张时是三列、四张（拿到访问量时）就是四列，
+   窄屏自动落成一列，不需要为「有没有第四张」写两套样式。 */
+.fc-site-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin: var(--gap) 0;
+    min-width: 0;
+}
+
+/* .fc-page-head 自带 margin（列表页靠它跟下面的卡片拉开），外面已经用 gap 排了 */
+.fc-site-page .fc-page-head {
+    margin: 0;
+}
+
+/* 页头那颗「构建于 …」的胶囊：跟技能页踩的是同一个坑 —— .fc-chip 原本是
+   强调色字压强调色浅底，把清晰度拉高、遮罩变薄之后实测只剩 3.3:1（浅色）。
+   这里换成与下面说明卡里那几个 <code> 同一套「静音块」配色
+   （--fc-skill-bg 底 + --fc-skill-stroke 描边 + --secondary 字）。
+   ⚠️ 选择器限定在 .fc-site-page 里，**技能页那颗一个字都没动**（它有自己那条规则）。 */
+.fc-site-page .fc-page-head .fc-chip {
+    background: var(--fc-skill-bg);
+    border-color: var(--fc-skill-stroke);
+    color: var(--secondary);
+}
+
+.fc-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(186px, 1fr));
+    gap: 14px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.fc-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    padding: 18px 20px 16px;
+}
+
+/* tabular-nums：数字等宽，切页/刷新时旁边那行小字不会左右跳 */
+.fc-stat-num {
+    color: var(--primary);
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: 0.01em;
+    font-variant-numeric: tabular-nums;
+}
+
+.fc-stat-label {
+    color: var(--primary);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.fc-stat-src {
+    margin-top: 2px;
+    color: var(--secondary);
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.fc-site-note {
+    padding: 20px 24px 18px;
+}
+
+.fc-site-note-title {
+    margin: 0 0 14px;
+    color: var(--primary);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* <dl> 排成两列：左边术语、右边解释。窄屏落成一列 */
+.fc-site-note-list {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px 18px;
+    margin: 0;
+}
+
+.fc-site-note-list dt {
+    color: var(--primary);
+    font-size: 13.5px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.fc-site-note-list dd {
+    margin: 0;
+    color: var(--secondary);
+    font-size: 13px;
+    line-height: 1.75;
+    overflow-wrap: anywhere;   /* 长串（令牌名、路径）不撑破卡片 */
+}
+
+.fc-site-note code {
+    padding: 1px 5px;
+    border: 1px solid var(--fc-skill-stroke);
+    border-radius: 6px;
+    background: var(--fc-skill-bg);
+    color: var(--primary);
+    font-size: 12px;
+    word-break: break-all;
+}
+
+/* 隐私那一句单独隔一条细线，视觉上跟「数字怎么来的」分开 ——
+   它是这一页的承诺，不是又一条技术说明 */
+.fc-site-note-privacy {
+    margin: 16px 0 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--fc-glass-stroke);
+    color: var(--secondary);
+    font-size: 13px;
+    line-height: 1.75;
+}
+
+@media screen and (max-width: 640px) {
+
+    .fc-stats-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+    }
+
+    .fc-stat {
+        padding: 16px 16px 14px;
+    }
+
+    .fc-stat-num {
+        font-size: 30px;
+    }
+
+    .fc-site-note {
+        padding: 16px 16px 14px;
+    }
+
+    /* 窄屏两列会把解释挤成一列窄字，直接堆叠 */
+    .fc-site-note-list {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2px;
+    }
+
+    .fc-site-note-list dd {
+        margin-bottom: 10px;
+    }
+}
+

@@ -105,17 +105,13 @@
        · 位置：主题 <footer> 之后 = 版权行下方；页脚在 main.main 之外，
          pjax 换页不会替换它，所以时钟不会重置、也不会重复建定时器
      ===================================================================== */ -}}
-{{- $since := site.Params.siteLaunchDate | default "2026-09-30" -}}
-{{- $elapsed := now.Sub (time.AsTime $since) -}}
-{{- $hours := $elapsed.Hours -}}
-{{- $uptime := "本站已稳定运行：0分钟" -}}
-{{- if ge $hours 8760 -}}
-    {{- $uptime = printf "本站已稳定运行：%d年%d天" (div (int (math.Floor $hours)) 8760) (div (mod (int (math.Floor $hours)) 8760) 24) -}}
-{{- else if ge $hours 1 -}}
-    {{- $uptime = printf "本站已稳定运行：%d天%d小时" (div (int (math.Floor $hours)) 24) (mod (int (math.Floor $hours)) 24) -}}
-{{- else if ge $hours 0 -}}
-    {{- $uptime = printf "本站已稳定运行：%d分钟" (int (math.Floor $elapsed.Minutes)) -}}
-{{- end -}}
+{{- /* 起始日与「运行多久」的算法抽到了 _partials/site_uptime.html ——
+       站点数据页（/site/）的「已运行天数」也调同一个 partial，
+       免得两处各算一份、改了 hugo.toml 之后一边变一边不变。
+       这里的文案格式与分支跟抽出去之前一字不差。 */ -}}
+{{- $up := partial "site_uptime.html" . -}}
+{{- $since := $up.since -}}
+{{- $uptime := $up.text -}}
 <div class="fc-statusbar-wrap">
     <div class="fc-statusbar fc-glass" id="fc-statusbar" data-since="{{ $since }}">
         <div class="fc-statusbar-clock">
@@ -126,6 +122,15 @@
             <span class="fc-statusbar-dot" aria-hidden="true"></span>
             <span id="fc-statusbar-uptime">{{ $uptime }}</span>
         </div>
+        {{- /* 站点数据页 /site/ 的入口。放这儿而不是顶部导航 / 左栏目录：
+               那两处共用同一份 [[menu.main]]、现在都是 8 项，加一项两边都会变成 9 项。
+               放在状态栏里还有个好处 —— 它在玻璃卡里，不用再单独做「压在背景上的文字」
+               那层底衬（见技术总览 §4.5）。既有三块（时钟 / 运行时长 / 技术栈）的内容
+               一个字都没动，这只是多挂了一块。 */ -}}
+        <a class="fc-statusbar-link" href="{{ "site/" | relLangURL }}">
+            <span>本站概况</span>
+            <span class="fc-statusbar-link-arrow" aria-hidden="true">→</span>
+        </a>
         <div class="fc-statusbar-stack">
             {{- /* 技术栈：本站真实用的三样，胶囊样式沿用站内 .fc-chip */ -}}
             <span class="fc-chip fc-statusbar-chip">
@@ -206,3 +211,16 @@
      ===================================================================== */ -}}
 {{- $navposts := resources.Get "js/nav-posts.js" | resources.Minify | resources.Fingerprint -}}
 <script defer src="{{ $navposts.RelPermalink }}" integrity="{{ $navposts.Data.Integrity }}" crossorigin="anonymous"></script>
+
+{{- /* =====================================================================
+     正文图片灯箱 + 阅读进度条
+     两个脚本都是「按需生效」的，所以放在常驻区（main.main 之外）只加载一次：
+       · 灯箱：事件委托挂在 document 上，只认 .fc-article .post-content 里的图片；
+         唯一的那个 <dialog> 建在 <body> 上，pjax 换页不会把它换掉或建出第二个。
+       · 进度条：进度条元素本身由 layouts/single.html 决定渲不渲染（只有文章页有），
+         脚本只负责画宽度，并且在 pjax 换页后重新找元素、把宽度清零。
+     ===================================================================== */ -}}
+{{- $lightboxjs := resources.Get "js/lightbox.js" | resources.Minify | resources.Fingerprint -}}
+<script defer src="{{ $lightboxjs.RelPermalink }}" integrity="{{ $lightboxjs.Data.Integrity }}" crossorigin="anonymous"></script>
+{{- $progressjs := resources.Get "js/reading-progress.js" | resources.Minify | resources.Fingerprint -}}
+<script defer src="{{ $progressjs.RelPermalink }}" integrity="{{ $progressjs.Data.Integrity }}" crossorigin="anonymous"></script>

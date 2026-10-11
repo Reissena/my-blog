@@ -1,0 +1,175 @@
+{{- /* =====================================================================
+     站点数据页 /site/（content/site.md 里 layout: "site" 选中本模板）
+     ---------------------------------------------------------------------
+     这一页只回答一个问题：「这个站现在什么样」。上面三张卡片的数字
+     **全部是构建时从仓库自己的数据里算出来的**，页面里没有一行前端请求：
+
+       | 显示 | 来源 |
+       | --- | --- |
+       | 文章数 | site.RegularPages 里 mainSections（= posts）那部分 —— 与左栏目录、
+       |        | 首页统计用的是同一个集合，不另起一套「数文件」的口径 |
+       | 音乐数 | data/music.yaml（hugo.Data.music）的条数 |
+       | 已运行天数 | _partials/site_uptime.html —— 与页脚状态栏**共用同一份算法**，
+       |        | 起始日只认 hugo.toml 的 params.siteLaunchDate |
+       | 累计访问量 | 可选：构建时环境变量里有 CLOUDFLARE_API_TOKEN 才查，见下面 |
+
+     ⚠️ 为什么访问量要「拿不到就不显示」，而不是显示 0 或留个空框：
+       GitHub Actions 的构建里**没有**这个凭据（deploy.yml 只把令牌交给 wrangler
+       那一步，不给构建步骤），所以线上部署出来的通常是三张卡片。
+       这时候页面必须是「完整的」，不能出现灰色占位符或者 0 —— 0 会被读成
+       「一个人都没来过」，那是假话；空框则像是页面坏了。
+       想让它显示：本地构建前 `$env:CLOUDFLARE_API_TOKEN = "只读令牌"` 再 `hugo`，
+       或者在 CI 里给构建步骤加环境变量（那属于改 deploy.yml，站主点头才做）。
+
+     ⚠️ 为什么是构建时查、而不是页面里 fetch：
+       前端请求会引出跨域、令牌暴露、以及「构建好的静态页依赖一个活的接口」
+       三个问题；而这个数字本来就不需要实时（每次部署更新一次已经足够）。
+
+     ⚠️ 隐私：这一页只公开**汇总量**。任何「访问者层面」的东西都不显示 ——
+       单条记录、IP、来源、UA、地理分布、时间曲线、独立访客数（能反推的也不行）。
+       Analytics Engine 里的这些字段是有的，只是**一个都不往页面上搬**。
+       docs/访问统计.md 里那句「不做公开的 /stats/ 页面」说的就是这件事，
+       那一行这次已经改掉了（这一页能公开的只有总数）。
+     ===================================================================== */ -}}
+{{- define "main" }}
+
+{{- /* 文章数：与左栏目录「文章」那个计数、首页统计同一套取法 */ -}}
+{{- $posts := where site.RegularPages "Type" "in" site.Params.mainSections -}}
+{{- $postCount := len $posts -}}
+{{- /* 音乐数：歌单是 tools/prepare-music.py 生成的 data/music.yaml */ -}}
+{{- $musicCount := 0 -}}
+{{- with hugo.Data.music }}{{ $musicCount = len . }}{{ end -}}
+{{- /* 已运行天数：起始日与算法都在这个 partial 里，页脚状态栏调的是同一个 */ -}}
+{{- $up := partial "site_uptime.html" . -}}
+
+{{- /* ---------------- 可选：累计访问量（构建时查 Analytics Engine） ----------------
+       三条防线，缺一条都可能把「拿不到一个数字」升级成「整站构建失败」：
+         ① 没凭据 → 连请求都不发（线上就是这条路，页面照常是完整的）；
+         ② 请求走 try：网络不通、令牌不对、权限不够（403）、数据集还没建（404）
+            全都只产生一个 warning，构建继续、这一张卡片不渲染；
+         ③ 解析出来的值只有在「是个正经数字」时才用，否则一样当没有。
+       ⚠️ 令牌只放在 Authorization 头里，绝不进 URL（URL 会被写进日志与缓存键）。 */ -}}
+{{- $visits := 0 -}}
+{{- $token := os.Getenv "CLOUDFLARE_API_TOKEN" -}}
+{{- if $token -}}
+{{- /* 账号 ID 不是敏感信息：与 .github/workflows/deploy.yml 里写死的是同一个
+       （tools/query-visits.mjs 也是从那个文件读的）。它变了这里也要跟着改。 */ -}}
+{{- $account := os.Getenv "CLOUDFLARE_ACCOUNT_ID" | default "f1788a61e7a94f861c6df693513f68d1" -}}
+{{- $dataset := "my_blog_pageviews" -}}
+{{- $sql := printf "SELECT SUM(_sample_interval * double1) AS pv FROM %s" $dataset -}}
+{{- $url := printf "https://api.cloudflare.com/client/v4/accounts/%s/analytics_engine/sql" $account -}}
+{{- /* key 里带上日期：同一天重复构建直接用 Hugo 的缓存（省一次接口调用），
+       跨天则一定会重新查一次 —— 页面上的「数据时间」才不会是几天前的旧数 */ -}}
+{{- $opts := dict
+    "method" "POST"
+    "headers" (dict "Authorization" (printf "Bearer %s" $token) "Content-Type" "text/plain")
+    "body" $sql
+    "key" (printf "fc-visits-total-%s-%s" $account (now.UTC.Format "2006-01-02"))
+    "timeout" "10s" -}}
+{{- $res := try (resources.GetRemote $url $opts) -}}
+{{- with $res.Err -}}
+    {{- warnf "站点数据页：累计访问量这次没查到（页面照常渲染，只是少一张卡片）：%s" . -}}
+{{- else with $res.Value -}}
+    {{- $payload := .Content | transform.Unmarshal -}}
+    {{- with $payload.data -}}
+        {{- with index . 0 -}}
+            {{- with index . "pv" -}}
+                {{- /* 只在拿到的确实是数字时才用。Cloudflare 返回的是 JSON 数字（float64），
+                       但万一哪天变成字符串或别的形状：`int` 一个非数字字符串会**直接让构建失败**，
+                       那就把「少一个数字」升级成了「站发不出去」—— 宁可不要这个数，
+                       并在构建日志里留一句 warning，也不要赌它的类型。 */ -}}
+                {{- if in (slice "float64" "int" "int64" "json.Number") (printf "%T" .) -}}
+                    {{- $visits = int . -}}
+                {{- else -}}
+                    {{- warnf "站点数据页：访问量字段的类型不是数字（%s），这次不显示这张卡片" (printf "%T" .) -}}
+                {{- end -}}
+            {{- end -}}
+        {{- end -}}
+    {{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{- /* 北京时间（UTC+8）的构建日期。不用 time.LoadLocation：那个依赖构建机上的
+       tzdata，换台机器可能直接报错；加 8 小时是等价的、也不会失败。
+       页脚那个时钟用的是 Intl 的 Asia/Shanghai，两者在「日期」这一级一致。 */ -}}
+{{- $builtAt := (now.UTC.Add (time.ParseDuration "8h")).Format "2006-01-02 15:04" -}}
+{{- $builtDay := (now.UTC.Add (time.ParseDuration "8h")).Format "2006-01-02" -}}
+
+<div class="fc-layout fc-layout--article">
+    {{- partial "site_nav.html" . }}
+    <div class="fc-main-col">
+        <div class="fc-site-page">
+
+            <header class="fc-page-head fc-glass">
+                <h1 class="fc-page-title">{{ .Title }}</h1>
+                {{- with .Params.subtitle }}<p class="fc-page-desc">{{ . }}</p>{{ end }}
+                {{- /* 每构建一次更新一次，所以「构建时间」就是这页所有数字的截止时间 */ -}}
+                <span class="fc-chip">构建于 {{ $builtAt }}（北京时间）</span>
+            </header>
+
+            <ul class="fc-stats-grid">
+                <li class="fc-stat fc-glass">
+                    <span class="fc-stat-num">{{ $postCount }}</span>
+                    <span class="fc-stat-label">篇文章</span>
+                    <span class="fc-stat-src">构建时数 content/posts/</span>
+                </li>
+                <li class="fc-stat fc-glass">
+                    <span class="fc-stat-num">{{ $musicCount }}</span>
+                    <span class="fc-stat-label">首歌</span>
+                    <span class="fc-stat-src">读 data/music.yaml</span>
+                </li>
+                <li class="fc-stat fc-glass">
+                    <span class="fc-stat-num">{{ $up.days }}</span>
+                    <span class="fc-stat-label">天</span>
+                    <span class="fc-stat-src">自 {{ $up.since }} 起，一直没关过站</span>
+                </li>
+
+                {{- /* 拿不到就整张卡片都不渲染 —— 不留空框、不显示 0 */ -}}
+                {{- if gt $visits 0 }}
+                <li class="fc-stat fc-glass">
+                    <span class="fc-stat-num">{{ $visits }}</span>
+                    <span class="fc-stat-label">次页面访问</span>
+                    <span class="fc-stat-src">截至 {{ $builtDay }}</span>
+                </li>
+                {{- end }}
+            </ul>
+
+            <section class="fc-site-note fc-glass">
+                <h2 class="fc-site-note-title">这些数字是怎么来的</h2>
+                <dl class="fc-site-note-list">
+                    <dt>篇文章</dt>
+                    <dd>构建时数 <code>content/posts/</code> 目录下的文章。和左栏目录里那个数字是同一个集合。</dd>
+
+                    <dt>首歌</dt>
+                    <dd>读歌单 <code>data/music.yaml</code> 的条数。音频文件在 Cloudflare R2 上，不在仓库里。</dd>
+
+                    <dt>运行天数</dt>
+                    <dd>
+                        从 <code>hugo.toml</code> 的 <code>siteLaunchDate</code>（{{ $up.since }}）算到今天，
+                        与页脚状态栏那句「本站已稳定运行」用的是同一份算法。
+                    </dd>
+
+                    <dt>页面访问</dt>
+                    <dd>
+                        {{- if gt $visits 0 }}
+                        来自本站自己的服务端统计（Cloudflare Analytics Engine），
+                        <strong>只数页面</strong>、不数图片和样式；同一个人的多次访问按同一份匿名指纹汇总。
+                        {{- else }}
+                        <strong>这一页没有显示访问次数</strong> —— 它需要构建时提供 Cloudflare 的只读凭据才查得到，
+                        平时（包括自动部署的那次构建）都拿不到，所以这一项干脆不显示。
+                        {{- end }}
+                    </dd>
+                </dl>
+
+                <p class="fc-site-note-privacy">
+                    这里只放<strong>汇总量</strong>。访问者层面的东西一个都没有：
+                    没有单条访问记录、没有 IP、没有来源与设备、没有地理分布、也没有按天的时间曲线 ——
+                    能反推到「某个人什么时候看了哪一页」的数，这一页一律不放。
+                </p>
+            </section>
+
+        </div>
+    </div>
+</div>
+
+{{- end }}{{/* end main */ -}}

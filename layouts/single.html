@@ -4,8 +4,27 @@
     · 覆盖主题同名文件；正文仍复用主题的 .post-content / md-content 排版与
       代码高亮（chroma），只由 fluent.css 调整行高、圆角与底色。
     · 分享按钮已关闭（hugo.toml: ShowShareButtons = false）。
+    · 正文图片的「点击放大」不在这里做任何标记：灯箱由 assets/js/lightbox.js
+      用事件委托实现，靠 `.fc-article .post-content` 这个容器选中正文图片
+      （封面图 / 头像 / 图标排 / 播放器封面都不在这个容器里，不会被误伤）。
+      刻意不改 render-image 钩子、也不给图片包 <a>：那会动到所有正文图片的
+      HTML 结构（而正文是站主在后台写的，结构越少动越安全）。
    ===================================================================== */ -}}
 {{- define "main" }}
+
+{{- /* 阅读进度条：**只有 /posts/ 下的正文页**才渲染这个元素（首页、列表页、
+       归档、标签、技能、音乐、关于、简历、搜索都没有它）。
+       在模板这一层用「渲不渲染」来切分，比让脚本去猜「这是不是文章页」更稳：
+       脚本找不到元素就什么都不画，也就不会有「列表页顶上挂一根空条」这种事。
+       位置由 CSS 定（粘在粘性页头下沿，z-index 低于页头），DOM 放哪都不影响观感；
+       但必须留在 main.main 里 —— pjax 换页时它会跟着被换成新的，这正是
+       「从 A 文章切到 B 文章，进度条回到 0」的实现方式。 */ -}}
+{{- if eq .Section "posts" }}
+<div class="fc-progress" id="fc-progress" role="progressbar" aria-label="阅读进度"
+    aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+    <span class="fc-progress-fill"></span>
+</div>
+{{- end }}
 
 <div class="fc-layout fc-layout--article">
     {{- partial "site_nav.html" . }}

@@ -1,0 +1,36 @@
+{{- /* =====================================================================
+     site_uptime.html —— 「本站已稳定运行多久」的**唯一一份算法**
+     ---------------------------------------------------------------------
+     为什么要有这个 partial：同一套「起始日 → 已经过去多久」的算法有两处要用 ——
+       · 页脚状态栏（extend_footer.html）：脚本没跑起来时的静态兜底文案
+       · 站点数据页（layouts/site.html）：卡片上的「已运行 N 天」
+     如果在第二个地方复制一份，迟早出现「改了 hugo.toml 的起始日，页脚变了、
+     数据页没变」这种不报错、也没人会立刻发现的不一致。所以算法只留这一份。
+
+     起始日来自 hugo.toml 的 params.siteLaunchDate（模板与脚本里都没有硬编码日期）；
+     页脚那句「本站已稳定运行：X天Y小时」的**文案格式与分支一个字都没改**，
+     只是搬到这里返回给调用方 —— 页脚渲染出来的东西和以前完全一样。
+
+     返回值（partial 用 return，不输出任何 HTML）：
+       since  string  起始日原文（页脚要写进 data-since 交给 JS 走秒）
+       hours  int     已经过去的整小时数
+       days   int     已经过去的整天数（数据页用它；起始日在未来时夹到 0）
+       text   string  页脚那句「本站已稳定运行：…」
+     ===================================================================== */ -}}
+{{- $since := site.Params.siteLaunchDate | default "2026-09-30" -}}
+{{- $elapsed := now.Sub (time.AsTime $since) -}}
+{{- $hours := $elapsed.Hours -}}
+{{- $hoursInt := int (math.Floor $hours) -}}
+{{- $days := div $hoursInt 24 -}}
+{{- /* 起始日被填成未来日期时（改配置手滑）：只夹住返回给数据页的天数，
+       上面的文案分支一个字都不动 —— 否则页脚会从「0分钟」变成「-N分钟」 */ -}}
+{{- if lt $days 0 }}{{ $days = 0 }}{{ end -}}
+{{- $text := "本站已稳定运行：0分钟" -}}
+{{- if ge $hours 8760 -}}
+    {{- $text = printf "本站已稳定运行：%d年%d天" (div $hoursInt 8760) (div (mod $hoursInt 8760) 24) -}}
+{{- else if ge $hours 1 -}}
+    {{- $text = printf "本站已稳定运行：%d天%d小时" (div $hoursInt 24) (mod $hoursInt 24) -}}
+{{- else if ge $hours 0 -}}
+    {{- $text = printf "本站已稳定运行：%d分钟" (int (math.Floor $elapsed.Minutes)) -}}
+{{- end -}}
+{{- return (dict "since" $since "hours" $hoursInt "days" $days "text" $text) -}}
