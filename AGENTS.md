@@ -144,12 +144,17 @@ node tools/test-pageview.mjs        # 57 项断言：口径 + 「打点坏了页
 最坏情况是把「少一个数字」升级成「站发不出去」）：
 
 ```powershell
-# ① 没凭据（线上默认就是这个状态）
+# ① 没凭据（线上默认就是这个状态）—— 顺带验证「不会覆盖已提交的文件」
 Remove-Item Env:\CF_ANALYTICS_TOKEN -ErrorAction SilentlyContinue
 Remove-Item Env:\CLOUDFLARE_API_TOKEN -ErrorAction SilentlyContinue
-Remove-Item data\site_stats.yaml -ErrorAction SilentlyContinue   # 生成物，删掉不影响任何东西
+(Get-FileHash data\site_stats.yaml).Hash     # ← 记下运行前的 sha256
+node tools/fetch-site-stats.mjs              # 期望：exit 0，只有一行「没有凭据，跳过查询、不写文件」
+(Get-FileHash data\site_stats.yaml).Hash     # 期望：和上面**一模一样**（一个字节都不动）
 ..\tools\hugo\hugo.exe --minify --gc
-# 期望：exit 0、只有主题那两条 deprecation WARN、/site/ 上仍是三张卡片
+# 期望：exit 0、只有主题那两条 deprecation WARN、/site/ 上是**四张卡片**
+#       （访问量用的是仓库里提交的那份，卡片右下角标着「截至 X」）
+# ⚠️ 别删 data\site_stats.yaml 来「制造没凭据的场景」—— 它现在是**仓库里的正式数据文件**，
+#    删了不会自动重建（CI 没有 Secret 时脚本不写文件），页面上那个数字就真没了。
 
 # ② 故意给个坏令牌
 $env:CF_ANALYTICS_TOKEN = "随便一个假值"
@@ -157,7 +162,11 @@ node tools/fetch-site-stats.mjs      # 期望：exit 0、只有一行中文说�
 Remove-Item Env:\CF_ANALYTICS_TOKEN
 ```
 
-`/site/` 为什么这么设计、四个数字各自的来源、失败矩阵，见
-[`docs/技术总览.md`](docs/技术总览.md) §4.19 与 [`docs/访问统计.md`](docs/访问统计.md) §7.5。
+> ⚠️ `data/site_stats.yaml` **是提交进仓库的**（`.gitignore` 里只挡 `.tmp`）——
+> 因为本机打不开 `github.com`、加不了 GitHub Secret，刷新它靠「本机手动跑一次脚本 → 提交」。
+> 这两条一忽略一不忽略是**故意的**，别顺手「统一」掉。
+
+`/site/` 为什么这么设计、四个数字各自的来源、失败矩阵、两条更新路径与时效性，见
+[`docs/技术总览.md`](docs/技术总览.md) §4.19 与 [`docs/访问统计.md`](docs/访问统计.md) §7.5、§7.6、§10.4。
 
 推完顺手看一眼 GitHub Actions 有没有变绿 —— 那才是真正上线的那道关。

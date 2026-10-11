@@ -39,8 +39,9 @@ mainSections = ["posts"]
 # ------------------------------------------------------------
 # 这里曾经有一节 [security.funcs] getenv（放行 CLOUDFLARE_API_TOKEN / _ACCOUNT_ID），
 # 因为 /site/ 的累计访问量最初是**模板**用 os.Getenv + resources.GetRemote 自己查的。
-# 现在改成：构建时由 tools/fetch-site-stats.mjs 查好写进 data/site_stats.yaml，
-# 模板只读那个文件（见 docs/访问统计.md §7.5）。于是模板不再需要读任何环境变量，
+# 现在改成：由 tools/fetch-site-stats.mjs 查好写进 data/site_stats.yaml（该文件**提交进仓库**，
+# 见 .gitignore；本机加不了 GitHub Secret，所以靠手动跑一次再提交来刷新），
+# 模板只读那个文件（见 docs/访问统计.md §7.5、§7.6）。于是模板不再需要读任何环境变量，
 # 这一节就撤掉了 —— 少开一扇不需要的门。**别为了「顺手」再把它加回来**：
 # 让 Hugo 构建去碰网络，等于把「接口抖一下」升级成「站发不出去」。
 # ------------------------------------------------------------

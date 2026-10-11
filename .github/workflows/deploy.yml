@@ -44,16 +44,21 @@ jobs:
           extended: true
 
       # 3) 站点数据页 /site/ 的「累计访问量」：**构建时**查一次 Cloudflare
-      #    Analytics Engine，把结果写进 data/site_stats.yaml（那个文件不进仓库，
-      #    见 .gitignore），紧接着的 hugo 构建会读它渲染那一张卡片。
+      #    Analytics Engine，把结果写进 data/site_stats.yaml，紧接着的 hugo
+      #    构建会读它渲染那一张卡片。
+      #    ⚠️ 这个文件**是提交进仓库的**（见 .gitignore 里那两条一忽略一不忽略的说明）：
+      #      本机打不开 github.com、加不了 GitHub Secret，所以现在走的是
+      #      「本地手动跑一次 tools/fetch-site-stats.mjs → 提交」那条路。
+      #      配好 Secret 之后**不用改这里任何东西**，本步骤的那次查询会就地覆盖手动提交的值。
       #    · 令牌走 env 传入，**绝不写进 run: 那一行** —— 命令行会原样出现在日志里；
       #      脚本自己也做了三件事：不打印令牌、不打印响应体、所有输出过一遍
       #      「令牌串替换成 ***」的保险（见 tools/fetch-site-stats.mjs 顶部注释）。
       #    · 两道降级保险：脚本内部失败一律 exit 0 只跳过写文件；这里的
       #      continue-on-error 再兜一层（万一是 node 自身起不来）。结果是：
-      #      查询出任何问题都只是「这一页少一张卡片」，绝不让整次部署失败。
-      #    · 没配 CF_ANALYTICS_TOKEN 时脚本会自己跳过 —— 这就是现在的默认状态，
-      #      也是「优雅降级」那条路。配好 Secret 之后不用改这里任何东西。
+      #      查询出任何问题都绝不让整次部署失败。
+      #      ⚠️ 「跳过写文件」不等于「页面少一张卡片」：仓库里已经有一份提交好的
+      #         site_stats.yaml，查不到时页面就沿用它（数字会停在最后一次成功查询那天）。
+      #         **这一条正是「没 Secret 也不会把提交的数字抹掉」的保证，别改成无条件覆盖。**
       - name: 查 /site/ 的累计访问量（写 data/site_stats.yaml）
         continue-on-error: true
         env:

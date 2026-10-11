@@ -27,12 +27,29 @@
  *      所有输出都过一遍 `log()`，它会把令牌串替换成 ***，算是最后一道保险。
  *   2. **绝不中断构建**：任何失败都 `exit 0`，只跳过写文件。
  *      失败原因用中文说清楚（HTTP 几 / 什么错），但不 echo 凭据。
+ *      ⚠️ **「不写文件」的后果跟以前不一样了**：`data/site_stats.yaml` 现在**提交进了仓库**
+ *      （本机加不了 GitHub Secret，见下面「两条更新路径」），所以查不到时页面**不会**少一张卡片，
+ *      而是沿用它上次提交的那个数 —— 数字照样显示，只是停在过去某一天。这是设计如此：
+ *      「最后一次成功查询的结果」比「什么都没有」有用，页面上也标着「截至 X」。
  *   3. **绝不写半个文件**：先写 .tmp 再 rename —— 万一写到一半挂了，
  *      留一个语法不完整的 YAML 会让 Hugo 构建直接失败，那正是本脚本要避免的事。
+ *
+ * 两条更新路径（**同时只有一条在生效，看有没有配到凭据**）：
+ *
+ *   | 路径 | 谁在跑 | 什么时候更新 | 需要什么 |
+ *   | --- | --- | --- | --- |
+ *   | 自动（将来） | GitHub Actions（deploy.yml 的第 3 步） | 每次 CI 构建，构建时就地覆盖那个文件 | 仓库 Secret `CF_ANALYTICS_TOKEN` |
+ *   | 手动（现在在用） | 站主本机 | 自己跑一次脚本 + 提交 | 本机环境变量里的只读令牌 |
+ *
+ *   · 两者**不需要改任何代码**就能切换：配了 Secret，CI 那次查询就会覆盖手动提交的值；
+ *     没配 Secret，脚本走「没有凭据」那条路 exit 0、不写文件，手动提交的那份原样留在仓库里被 Hugo 用。
+ *   · 所以页面上的数字**只反映最后一次成功查询的时刻**，页面上标的「截至 X」就是那个时刻 ——
+ *     **它不是实时的**，也别指望 CI 每次都能刷新它。
  *
  * 用法：
  *   node tools/fetch-site-stats.mjs                 # 构建时由 workflow 调（见 deploy.yml）
  *   $env:CLOUDFLARE_API_TOKEN = "只读令牌"; node tools/fetch-site-stats.mjs   # 本地手动跑一次
+ *   # ⚠️ 本地手动跑完之后要**把改动提交上去**，否则页面上还是旧数字（这条是现在的常规路径）。
  */
 
 import { readFile, writeFile, rename } from 'node:fs/promises';
@@ -43,6 +60,29 @@ const OUT_TMP = new URL('../data/site_stats.yaml.tmp', import.meta.url);
 
 /** 与 query-visits.mjs 的「总览」一致：累计访问次数（乘 _sample_interval 才对得上采样） */
 const SQL = `SELECT SUM(_sample_interval * double1) AS pv FROM ${DATASET}`;
+
+/**
+ * 写进 data/site_stats.yaml 的**文件头**。
+ *
+ * ⚠️ 它是一份**要提交进仓库**的数据文件（见 .gitignore，那两条一忽略一不忽略是故意的）：
+ *   本站所在的网络打不开 github.com，站主加不了 GitHub Secret，所以退到
+ *   「本机手动跑一次本脚本 → 把结果提交」这条路；将来 Secret 配好了，CI 会在构建时覆盖它。
+ *
+ * ⚠️ 因此这段文字**必须**和仓库里 `data/site_stats.yaml` 现有的头保持一致 ——
+ *   不一致的话，每手动跑一次都会产生一段「只改了注释」的 diff，下一个人会以为是数据变了。
+ *   改动这里时，**顺手把 data/site_stats.yaml 的头也改成一样的**。
+ */
+const HEADER = [
+  '# /site/ 站点数据页（layouts/site.html）的「累计访问量」，由 tools/fetch-site-stats.mjs 生成。',
+  '# ⚠️ 这个文件**要提交进仓库**（见 .gitignore）—— 本机打不开 github.com、加不了 GitHub Secret，',
+  '#    所以走「本地手动跑一次脚本 → 提交」这条路；页面上显示的就是最后一次查到的数。',
+  '# 将来仓库里配好同名 Secret CF_ANALYTICS_TOKEN，CI 会在构建时自动覆盖这份文件，**不用改任何代码**；',
+  '#    CI 查不到时脚本 exit 0 且不写文件，所以不会把这份提交进去的抹掉。',
+  '# ⚠️ 文件里**不许出现任何令牌值**：令牌只从环境变量读，不进文件、不进仓库。',
+  '# 口径：Analytics Engine 保留期（3 个月）内的页面访问总次数，全站只公开这一个总数。',
+  '#    页面上标的「截至 X」就是最后一次成功查询的日期 —— 它**不是实时数字**。',
+  '# 失败时怎么降级见 docs/访问统计.md §7.5。',
+];
 
 const TOKEN_NAMES = ['CF_ANALYTICS_TOKEN', 'CLOUDFLARE_API_TOKEN'];
 const token = TOKEN_NAMES.map((n) => (process.env[n] || '').trim()).find(Boolean) || '';
@@ -120,7 +160,7 @@ function describeError(status, text) {
 /* ------------------------------------------------------------------ 主流程 */
 try {
   if (!token) {
-    done(`· 没有 ${TOKEN_NAMES.join(' / ')}，跳过查询（/site/ 会少一张「累计访问量」卡片，这是预期行为）`);
+    done(`· 没有 ${TOKEN_NAMES.join(' / ')}，跳过查询、不写文件（/site/ 沿用仓库里已提交的那个数字，这是预期行为）`);
   }
 
   const account = await accountId();
@@ -159,7 +199,7 @@ try {
   }
 
   if (!res.ok) {
-    done(`· 累计访问量这次没查到，跳过写文件（页面照常部署，只是少一张卡片）：${describeError(res.status, text)}`);
+    done(`· 累计访问量这次没查到，跳过写文件（页面照常部署，/site/ 沿用仓库里已提交的数字）：${describeError(res.status, text)}`);
   }
 
   /* 解析：拿到的必须是「一个数字」。结构变了、字段没了、值是 null（表还是空的）
@@ -183,8 +223,7 @@ try {
   /* updated 一定要带引号：YAML 里裸写 2026-10-11 会被解析成**时间类型**，
      页面上会显示成 "2026-10-11 00:00:00 +0000 UTC"，非常难看。 */
   const yaml = [
-    '# 这个文件是构建时由 tools/fetch-site-stats.mjs 生成的，不进仓库（见 .gitignore）。',
-    '# 页面：/site/（layouts/site.html）。口径与失败时的行为见 docs/访问统计.md §7.5。',
+    ...HEADER,
     `visits: ${visits}`,
     `updated: "${updated}"`,
     '',
