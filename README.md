@@ -1,4 +1,4 @@
-# YunX东方夜话
+# 东方夜话_Yunx站
 
 > A Chinese personal blog built with Hugo, served from Cloudflare Workers — hand-written front end, no third-party JS frameworks.
 

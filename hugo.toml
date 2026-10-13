@@ -1,6 +1,6 @@
 # ============================================================
 # Hugo 站点配置 —— PaperMod 主题 / 中文站点
-# 站点：YunX东方夜话
+# 站点：东方夜话_Yunx站
 # ============================================================
 
 # 生产环境地址（结尾必须带斜杠）。
@@ -8,7 +8,7 @@
 #   baseURL = "https://blog.你的域名.com/"
 # 改了以后记得重新构建，否则 canonical / sitemap / RSS 里的链接还是旧域名。
 baseURL = "https://yunblog.com.cn/"
-title = "YunX东方夜话"
+title = "东方夜话_Yunx站"
 theme = "PaperMod"
 
 # 中文相关（Hugo 0.158+ 用 locale 取代 languageCode）
@@ -48,7 +48,7 @@ mainSections = ["posts"]
 
 [params]
   env = "production"
-  description = "YunX东方夜话：记录技术笔记、折腾过程与生活随笔。"
+  description = "东方夜话_Yunx站：记录技术笔记、折腾过程与生活随笔。"
   keywords = ["浮华Yun", "博客", "Hugo", "PaperMod", "技术笔记"]
   author = "浮华Yun"
 
