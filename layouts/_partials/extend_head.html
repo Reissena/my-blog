@@ -12,6 +12,31 @@
     /assets/css/stylesheet.<hash>.css；写成内联样式则相对「当前文档」解析，
     生产构建（根路径）与预览构建设置 relativeURLs = true（见 preview.toml）都对。
    ===================================================================== */ -}}
+{{- /* 进站加载动画（遮罩）的「首帧」样式。
+       整块动画在 assets/css/extended/boot-loader.css 里（跟着样式表走），
+       但遮罩必须在**第一次绘制**时就已经是「铺满视口 + 深色」的：样式表虽然是
+       rel="preload stylesheet"（正常也阻塞渲染），这里再写一份就不怕万一它晚到
+       —— 那时会先闪出正文再被盖上，是最难看的失败方式。
+       ⚠️ 下面这几条取值必须和 boot-loader.css 里 `.fc-boot` 的一致，改一处要改两处。
+       遮罩元素本身由 layouts/_partials/header.html 开头的脚本插入（为什么见那里）。 */ -}}
+<style>
+    .fc-boot {
+        position: fixed;
+        inset: 0;
+        z-index: 9990;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        background: rgb(10, 12, 16);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .fc-boot {
+            display: none !important;
+        }
+    }
+</style>
+
 {{- with resources.Get "images/background.jpg" -}}
 {{- /* 同时兼容两种构建：生产构建（根路径 /images/…）与预览构建
        （preview.toml 里 relativeURLs = true，页面会挂在子路径下）。

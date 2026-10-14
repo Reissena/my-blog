@@ -8,6 +8,76 @@
       主题自带的切换脚本因此照常工作；跟随系统的逻辑在 head.html 里。
     · 刻意不含任何登录 / 注册 / 会员入口。
    ===================================================================== */ -}}
+
+{{- /* =====================================================================
+    进站加载动画的遮罩 + 生命周期（长相与动画见 assets/css/extended/boot-loader.css）
+    ---------------------------------------------------------------------
+    · **为什么写在这里**：遮罩必须在任何内容之前进 DOM，否则会先闪一下正文再盖上。
+      主题 baseof.html 里 <body> 的第一个节点就是 header.html
+      （`partialCached "header.html"` 之后才是 `<main class="main">`），
+      所以这里是「紧跟 body 开头」的现成位置 —— 不必去覆盖主题的 baseof.html。
+      遮罩由脚本插入：禁用 JS 时页面上根本不存在这块东西（纯装饰，没有它照样读），
+      也就不会留下「遮罩永远盖着」这种失败态。
+
+    · **为什么只会播一次**：pjax 只替换 main.main（pjax.js 的 CONTENT），遮罩在
+      main.main 之外 —— 切页时它既不重建、也不会被重新显示，「点一篇文章又等一次
+      加载动画」在结构上就不可能发生。真正的整页加载只剩「首次进站 / 刷新 /
+      从外站回来」三种，而那三种场景访客本来就在等首屏。
+
+    · **时间上限（三层兜底，谁先到算谁）**：
+        window load —— 首屏资源齐了就结束
+        1.5s 硬上限 —— 图片再慢也不许让访客对着遮罩干等
+        CSS 那条 1.6s 的 animation —— 万一这段脚本没跑成（异常 / 被拦），
+                                     遮罩自己淡出，绝不会永远盖着
+    · **最少显示 400ms**：本地缓存命中时 load 可能 40ms 就回来了，那样只会「闪」
+      一下，看起来像故障而不是加载动画。
+   ===================================================================== */ -}}
+<script>
+    (function () {
+        // 尊重「减少动效」：连元素都不建（CSS 里还有一层 display:none 兜底）。
+        // 这一条对前庭功能敏感的访客最要紧 —— 转动的球 + 逐字闪烁正是该避开的动态。
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) { return; }
+
+        var MIN_MS = 400;    // 最短显示时长
+        var MAX_MS = 1500;   // 硬上限
+        var FADE_MS = 400;   // 与 CSS 里 .fc-boot 的 transition 时长一致
+        var t0 = Date.now();
+        var done = false;
+
+        var el = document.createElement('div');
+        el.className = 'fc-boot';
+        el.setAttribute('aria-hidden', 'true');   // 纯装饰：别让读屏软件把 YUNX 念出来
+        el.innerHTML = '<div class="fc-boot-stage"><div class="fc-boot-ball"></div>'
+            + '<span class="fc-boot-letter">Y</span><span class="fc-boot-letter">U</span>'
+            + '<span class="fc-boot-letter">N</span><span class="fc-boot-letter">X</span>'
+            + '<i class="fc-boot-star"></i><i class="fc-boot-star"></i><i class="fc-boot-star"></i>'
+            + '<i class="fc-boot-star"></i><i class="fc-boot-star"></i><i class="fc-boot-star"></i>'
+            + '<i class="fc-boot-star"></i></div>';
+        // 插到 body 的第一个位置：此刻正文一个节点都还没解析出来，遮罩先到位
+        document.body.insertBefore(el, document.body.firstChild);
+
+        function finish() {
+            if (done) { return; }
+            done = true;
+            // CSS 那条兜底动画已经把它送走了的话，直接摘掉：否则摘掉动画会让它
+            // 瞬间回到 opacity:1 再淡一次 —— 看起来就是「淡出完又闪一下」。
+            if (parseFloat(window.getComputedStyle(el).opacity) < 0.05) {
+                el.parentNode.removeChild(el);
+                return;
+            }
+            document.documentElement.classList.add('fc-boot-done');
+            window.setTimeout(function () {
+                if (el.parentNode) { el.parentNode.removeChild(el); }
+            }, FADE_MS + 200);
+        }
+
+        window.addEventListener('load', function () {
+            window.setTimeout(finish, Math.max(0, MIN_MS - (Date.now() - t0)));
+        });
+        window.setTimeout(finish, MAX_MS);
+    })();
+</script>
+
 {{- $cur := .Permalink | absLangURL -}}
 <header class="header">
     <nav class="header-nav">

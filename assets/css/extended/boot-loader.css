@@ -1,0 +1,271 @@
+/* ============================================================================
+   进站加载动画（打开网站时的加载画面）—— boot-loader.css
+   ----------------------------------------------------------------------------
+   动画来自 uiverse.io，作者 dexter-st，MIT 许可：
+     https://uiverse.io/dexter-st/popular-puma-86
+   原作 = 一颗在转的发光球（loader-rotate 用三帧 inset 阴影做出「球面光在转」）
+   + 10 个字母依次亮起（loader-letter-anim）+ 7 颗星星在呼吸（blur-anim）。
+   MIT 要求保留出处声明，上面这两段不要删。
+
+   相对原作改了什么（逐条列出，方便以后对着原文件核对）：
+     1. **配色**：原作是「深紫黑底 #0e0215 + 紫红 #f051」，全部换成站上已有的
+        强调色令牌（映射见下面 :root 那段）。
+     2. **文字**：10 个字母 → 4 个（YUNX）。动画周期刻意**保持 2s 不变**，
+        只重排延迟，理由写在 .fc-boot-letter 那条注释里。
+     3. **时长与行为**：只播一次、首屏 load 就结束、1.5s 硬上限、减少动效不播 ——
+        这几条全在 layouts/_partials/header.html 开头那段内联脚本里（含「为什么」）。
+     4. **类名一律加 fc-boot 前缀**：原作的 .loader / .star / .loader-letter 太通用，
+        站上是全局样式表，跟主题或正文撞名会很难查。
+     5. **字体**：原作的 "Inter" 要联网下载，这里用站上的 --fc-font（系统字体栈）。
+
+   ⚠️ 这个文件被 Hugo 自动拼进 assets/css/extended.css（主题 head.html 里的
+      resources.Match "css/extended/*.css"），和 fluent.css 是同一个样式表；
+      文件名 boot-loader 排在 fluent 前面，但两边类名不重叠，没有先后依赖。
+   ⚠️ `.fc-boot` 的定位还额外写了一份在 head 的内联样式里（首帧保险，
+      layouts/_partials/extend_head.html）—— 改那边的取值要回来改这里。
+   ========================================================================== */
+
+:root {
+    /* 遮罩底色：**两种主题都用深色**。
+       原作那颗球是「白色镜面高光 + 强调色从下方透出」两件事撑起来的；放到浅色
+       底上，白色高光直接消失、球就剩一团很淡的蓝雾（浅色主题下实测过，撑不住）。
+       取值也不是新造的 —— fluent.css 里 --fc-bare-backing / --fc-footer-backing
+       的深色档就是 rgb(10,12,16)，那是站上「深色表面」的既有取值。 */
+    --fc-boot-bg: rgb(10, 12, 16);
+
+    /* 球面强光 / 外圈光晕：强调色的 38%（浅）/ 35%（深）。
+       直接引用站上的 --fc-glass-stroke-hover —— 它的两个值就是这个，
+       所以别在这里另写 rgba()：写了以后换强调色就会漏掉这一处。
+       （引用的是变量本身，浅色/深色自动跟着切，不用再写 [data-theme="dark"]） */
+    --fc-boot-glow: var(--fc-glass-stroke-hover);
+
+    /* 球的染色底 + 弱光：强调色 10%（浅）/ 14%（深），站上已有的 --fc-accent-soft */
+    --fc-boot-tint: var(--fc-accent-soft);
+}
+
+/* 遮罩本体。定位那几条在 head 的内联样式里也有一份（首帧不许闪内容）。
+   这里补的是「怎么结束」：正常由 JS 给 <html> 加 .fc-boot-done 走过渡淡出；
+   JS 没跑成时靠下面那条 1.6s 的 animation 自己淡出 —— 兜底必须是 CSS，
+   因为主线程被长任务堵住时 setTimeout 会一起迟到，CSS 动画不会。 */
+.fc-boot {
+    position: fixed;
+    inset: 0;
+    z-index: 9990;                    /* 站上最高的是复制提示条 70，遮罩要压住整条阶梯 */
+    display: grid;
+    place-items: center;
+    overflow: hidden;                 /* 星星会散到球外 ±95px：窄屏上不许顶出横向滚动条 */
+    background: var(--fc-boot-bg);
+    transition: opacity 0.4s ease-out, visibility 0.4s;
+    animation: fc-boot-net 0.4s ease-out 1.6s forwards;
+}
+
+@keyframes fc-boot-net {
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+html.fc-boot-done .fc-boot {
+    /* 必须先摘掉 animation：CSS 动画优先级高于过渡，留着它过渡就永远不会跑 */
+    animation: none;
+    opacity: 0;
+    /* visibility 也一起过渡，它会在过渡**结束**时才翻成 hidden ——
+       于是元素在同一时刻既看不见、也不再吃点击 */
+    visibility: hidden;
+}
+
+/* 尊重「减少动效」：直接不播（连元素都不建的那道判断在 header.html 的内联脚本里）。
+   这里必须写 !important：head 里那份首帧内联样式排在样式表之后，同优先级会盖住这条。 */
+@media (prefers-reduced-motion: reduce) {
+    .fc-boot {
+        display: none !important;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   球：100×100 的舞台（原作的 .loader-wrapper）
+   ⚠️ position:relative + flex 居中不是随便写的：7 颗星星是绝对定位，靠
+      「static position 落在容器正中」再各自 translate 出去（flex 容器里绝对定位
+      子元素的 static position 会按 align-items / justify-content 对齐）。
+      改成 block 或去掉居中，7 颗星星会全部挤到左上角。
+   --------------------------------------------------------------------------- */
+.fc-boot-stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background-color: var(--fc-boot-tint);
+    box-shadow: 0 0 60px -10px var(--fc-boot-glow);   /* 原作是白色 33% 的光晕，换强调色 */
+    font-family: var(--fc-font);
+    font-size: 1.05em;
+    font-weight: 600;
+    color: #fff;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* 球面光：一个透明圆，靠三帧 inset 阴影「转」出光在球面上移动的效果（原作手法，保留）。
+   ⚠️ 0% 与 100% 必须一模一样，否则每 2 秒会「跳」一下。
+   阴影色映射：白高光 #fff / #fff5 原样保留（球顶的镜面高光，深底上两种主题都成立）；
+   紫红 #f001 / #fa09 / #f002 换成强调色派生的两个令牌 —— 原创那三个 alpha 是 0.4%/60%/0.8%，
+   压到深底上太淡了（紫红比站上的蓝亮得多），所以弱光用 10%/14%、强光用 38%/35%。 */
+.fc-boot-ball {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    background-color: transparent;
+    animation: fc-boot-spin 2s linear infinite;
+    z-index: 0;
+}
+
+@keyframes fc-boot-spin {
+    0%,
+    100% {
+        transform: rotate(90deg);
+        box-shadow: 0 10px 20px 0 #fff inset, 0 20px 30px 0 rgba(255, 255, 255, 0.33) inset, 0 60px 60px 0 var(--fc-boot-tint) inset;
+    }
+
+    50% {
+        transform: rotate(270deg);
+        box-shadow: 0 10px 20px 0 #fff inset, 0 20px 10px 0 var(--fc-boot-glow) inset, 0 40px 60px 0 var(--fc-boot-tint) inset;
+    }
+}
+
+/* 字母：依次亮起。
+   原作 10 个字母、每个延迟 0.1s、周期 2s。这里只有 4 个（YUNX），延迟改成
+   **0 / 0.5 / 1.0 / 1.5s，周期仍是 2s**，理由：
+     · 周期保持 2s —— 球和星星都是 2s，三套动画共用一个时钟，节奏才是同一个；
+       单独把字母缩到 1s 的话，字母的闪和球的转动会互相打架。
+     · 4 个字母均分 2s 正好 0.5s 一个，而球 2s 转一圈 —— 每个字母对应 90°，
+       读起来就是「球转四分之一圈，亮一个字」。
+     · 单个字母的可见窗口是周期的 0%~40%（0.8s），0.5s 的间隔 < 0.8s，
+       所以任何时刻至少有一个字母是亮的：不会出现原作那套延迟照抄过来时
+       「亮完前 0.3s、后面 1.2s 全黑」的空档。 */
+.fc-boot-letter {
+    display: inline-block;
+    opacity: 0.4;
+    transform: translateY(0);
+    animation: fc-boot-letter 2s infinite;
+    z-index: 1;
+    border-radius: 50ch;
+    border: none;
+    filter: blur(2px);
+    margin: 0 0.12em;                 /* 原作 0.35em 是给 10 个字母摊开用的，4 个字照抄会撑出球外 */
+}
+
+/* ⚠️ 用 :nth-of-type（按 span 计数），不是原作那种 :nth-child（按所有子元素计数）：
+   舞台里球是 div、星星是 i，只有字母是 span，按类型数才不会数错。 */
+.fc-boot-letter:nth-of-type(1) {
+    animation-delay: 0s;
+}
+
+.fc-boot-letter:nth-of-type(2) {
+    animation-delay: 0.5s;
+}
+
+.fc-boot-letter:nth-of-type(3) {
+    animation-delay: 1s;
+}
+
+.fc-boot-letter:nth-of-type(4) {
+    animation-delay: 1.5s;
+}
+
+/* 逐字亮起：0 / 20 / 40 三个关键帧，白芯 + 黑晕的 text-shadow 在深底上两种主题都成立，
+   原样保留，一个字没改。 */
+@keyframes fc-boot-letter {
+    0%,
+    100% {
+        opacity: 0;
+        transform: translateY(0);
+        filter: blur(2px);
+    }
+
+    20% {
+        opacity: 1;
+        transform: scale(1.2) translateY(-1px);
+        filter: blur(0px);
+        text-shadow: 0px 0px 2px #fff, 0px 0px 6px #000;
+    }
+
+    40% {
+        opacity: 0.7;
+        transform: translateY(0);
+        filter: blur(2px);
+    }
+}
+
+/* 星星：7 颗，呼吸（透明度 + 模糊半径）。
+   ⚠️ 星星这里用的是 `<i>`（不是 div），所以 nth-of-type 只数星星、不会把球算进去
+      —— 原作里球和星星都是 div，`nth-of-type(2)` 其实落在第 1 颗星上（整组位置
+      整体错了一格，最后一颗掉回基础 transform）。改成 `<i>` 之后，基础 transform
+      给第 1 颗、nth-of-type(2~7) 给其余 6 颗，**7 个位置和原作完全一致**，只是
+      分配顺序正了过来（连 animation-delay 一起），观感不变。 */
+.fc-boot-star {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #fff;
+    transform: translate(20px, 90px);
+    animation: fc-boot-twinkle 2s infinite;
+    box-shadow: 0 0 8px 0 #fff;
+    filter: blur(4px);
+    opacity: 0.2;
+}
+
+.fc-boot-star:nth-of-type(2) {
+    transform: translate(56px, 46px);
+    scale: 1.05;
+    animation-delay: 0.2s;
+}
+
+.fc-boot-star:nth-of-type(3) {
+    transform: translate(-26px, 56px);
+    scale: 1.4;
+    animation-delay: 0.4s;
+}
+
+.fc-boot-star:nth-of-type(4) {
+    transform: translate(-50px, -70px);
+    scale: 0.95;
+    animation-delay: 0.7s;
+}
+
+.fc-boot-star:nth-of-type(5) {
+    transform: translate(32px, -66px);
+    scale: 1.3;
+    animation-delay: 0.35s;
+}
+
+.fc-boot-star:nth-of-type(6) {
+    transform: translate(82px, -36px);
+    scale: 1;
+    animation-delay: 0.9s;
+}
+
+.fc-boot-star:nth-of-type(7) {
+    transform: translate(-92px, 26px);
+    scale: 1;
+    animation-delay: 0.95s;
+}
+
+@keyframes fc-boot-twinkle {
+    0%,
+    100% {
+        opacity: 0.2;
+        filter: blur(4px);
+    }
+
+    50% {
+        opacity: 0.3;
+        filter: blur(1px);
+    }
+}
