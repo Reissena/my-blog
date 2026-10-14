@@ -290,10 +290,23 @@ body::after {
     transition: background 0.15s ease, color 0.15s ease;
 }
 
-.fc-segmented a:hover,
-.fc-segmented a:hover span {
-    background: rgba(255, 255, 255, 0.55);
-    color: var(--primary);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-segmented a:hover,
+    .fc-segmented a:hover span {
+        background: rgba(255, 255, 255, 0.55);
+        color: var(--primary);
+    }
+}
+
+/* 按下反馈：上面那条媒体查询把触摸屏的「悬停」关掉了，:active 就成了唯一的
+   「按到了」的感觉（主题已在 reset.css 里全局关掉浏览器自带的点击高亮）。
+   取值分四档，**块越大比例越小** —— 同样的百分比，在整张卡片上会像「抖一下」：
+   大块（整卡 / 整行）0.99 · 中等（胶囊 / 小格）0.97 · 小标签 0.96 · 圆形图标钮（34~40px）0.94。
+   这四档都不是新发明：站上 .fc-profile-social a / .fc-statusbar-link 已经在用。 */
+.fc-segmented a:active {
+    transform: scale(0.97);
 }
 
 .fc-segmented a.active,
@@ -309,9 +322,13 @@ body::after {
     background: rgba(255, 255, 255, 0.06);
 }
 
-[data-theme="dark"] .fc-segmented a:hover,
-[data-theme="dark"] .fc-segmented a:hover span {
-    background: rgba(255, 255, 255, 0.10);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    [data-theme="dark"] .fc-segmented a:hover,
+    [data-theme="dark"] .fc-segmented a:hover span {
+        background: rgba(255, 255, 255, 0.10);
+    }
 }
 
 [data-theme="dark"] .fc-segmented a.active,
@@ -335,8 +352,16 @@ body::after {
     transition: background 0.15s ease;
 }
 
-.theme-toggle:hover {
-    background: var(--fc-glass-bg-strong);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .theme-toggle:hover {
+        background: var(--fc-glass-bg-strong);
+    }
+}
+
+.theme-toggle:active {
+    transform: scale(0.94);
 }
 
 [data-theme="dark"] .theme-toggle {
@@ -505,9 +530,13 @@ body::after {
     height: 13px;
 }
 
-.fc-card:hover .fc-card-cover img,
-.fc-card:focus-within .fc-card-cover img {
-    transform: scale(1.03);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-card:hover .fc-card-cover img,
+    .fc-card:focus-within .fc-card-cover img {
+        transform: scale(1.03);
+    }
 }
 
 /* 没有封面时的占位：与右侧栏「最新文章」同一套渐变 + 标题首字 */
@@ -535,11 +564,19 @@ body::after {
 }
 
 /* 克制的 hover：轻微上浮 */
-.fc-card:hover,
-.fc-card:focus-within {
-    transform: translateY(-3px);
-    box-shadow: var(--fc-shadow-hover);
-    border-color: var(--fc-glass-stroke-hover);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-card:hover,
+    .fc-card:focus-within {
+        transform: translateY(-3px);
+        box-shadow: var(--fc-shadow-hover);
+        border-color: var(--fc-glass-stroke-hover);
+    }
+}
+
+.fc-card:active {
+    transform: translateY(0) scale(0.99);
 }
 
 .fc-card-head {
@@ -623,8 +660,16 @@ body::after {
     text-decoration: none;
 }
 
-.fc-tags a:hover {
-    background: rgba(15, 108, 189, 0.18);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-tags a:hover {
+        background: rgba(15, 108, 189, 0.18);
+    }
+}
+
+.fc-tags a:active {
+    transform: scale(0.96);
 }
 
 .fc-readtime {
@@ -747,8 +792,12 @@ body::after {
     color: var(--fc-accent);
 }
 
-.post-tags a:hover {
-    background: rgba(15, 108, 189, 0.18);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .post-tags a:hover {
+        background: rgba(15, 108, 189, 0.18);
+    }
 }
 
 .paginav {
@@ -890,8 +939,16 @@ body.list {
     transition: background 0.15s ease;
 }
 
-.fc-stat:hover {
-    background: var(--fc-accent-soft);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-stat:hover {
+        background: var(--fc-accent-soft);
+    }
+}
+
+.fc-stat:active {
+    transform: scale(0.97);
 }
 
 .fc-stat-num {
@@ -946,8 +1003,16 @@ body.list {
     border-top: 1px solid var(--fc-glass-stroke);
 }
 
-.fc-latest-item:hover {
-    background: var(--fc-accent-soft);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-latest-item:hover {
+        background: var(--fc-accent-soft);
+    }
+}
+
+.fc-latest-item:active {
+    transform: scale(0.99);
 }
 
 .fc-latest-thumb {
@@ -1097,11 +1162,19 @@ body.list {
     transition: background 0.15s ease, color 0.15s ease;
 }
 
-.fc-nav-link:hover,
-.fc-nav-summary:hover,
-.fc-nav-leaf:hover {
-    background: var(--fc-accent-soft);
-    color: var(--primary);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-nav-link:hover,
+    .fc-nav-summary:hover,
+    .fc-nav-leaf:hover {
+        background: var(--fc-accent-soft);
+        color: var(--primary);
+    }
+}
+
+.fc-nav-link:active, .fc-nav-summary:active, .fc-nav-leaf:active {
+    transform: scale(0.99);
 }
 
 .fc-nav-icon {
@@ -1263,16 +1336,24 @@ body.list {
     transition: background 0.15s ease;
 }
 
-.fc-nav-more:hover {
-    background: var(--fc-accent-soft);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-nav-more:hover {
+        background: var(--fc-accent-soft);
+    }
 }
 
 .fc-nav-more-arrow {
     transition: transform 0.15s ease;
 }
 
-.fc-nav-more:hover .fc-nav-more-arrow {
-    transform: translateX(2px);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-nav-more:hover .fc-nav-more-arrow {
+        transform: translateX(2px);
+    }
 }
 
 /* 「最近 N 篇」之外的老文章被钉在最上面时，右侧那枚「当前」小标 */
@@ -1341,9 +1422,17 @@ body.list {
     transition: transform 0.18s ease, border-color 0.18s ease;
 }
 
-.archive-entry:hover {
-    transform: translateY(-2px);
-    border-color: var(--fc-glass-stroke-hover);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .archive-entry:hover {
+        transform: translateY(-2px);
+        border-color: var(--fc-glass-stroke-hover);
+    }
+}
+
+.archive-entry:active {
+    transform: translateY(0) scale(0.99);
 }
 
 .archive-entry-title {
@@ -1371,9 +1460,17 @@ body.list {
     transition: transform 0.15s ease, border-color 0.15s ease;
 }
 
-.terms-tags a:hover {
-    transform: translateY(-2px);
-    border-color: var(--fc-glass-stroke-hover);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .terms-tags a:hover {
+        transform: translateY(-2px);
+        border-color: var(--fc-glass-stroke-hover);
+    }
+}
+
+.terms-tags a:active {
+    transform: translateY(0) scale(0.96);
 }
 
 .searchbox {
@@ -1421,9 +1518,17 @@ body.list {
     transition: transform 0.15s ease, border-color 0.15s ease;
 }
 
-a.fc-pager-link:hover {
-    transform: translateY(-2px);
-    border-color: var(--fc-glass-stroke-hover);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    a.fc-pager-link:hover {
+        transform: translateY(-2px);
+        border-color: var(--fc-glass-stroke-hover);
+    }
+}
+
+a.fc-pager-link:active {
+    transform: translateY(0) scale(0.97);
 }
 
 .fc-pager-link.is-disabled {
@@ -1825,11 +1930,15 @@ a.fc-pager-link:hover {
     cursor: pointer;
 }
 
-.fc-profile-social a:hover,
-.fc-profile-social button:hover {
-    background: var(--fc-accent);
-    color: var(--fc-accent-ink);
-    transform: translateY(-2px);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-profile-social a:hover,
+    .fc-profile-social button:hover {
+        background: var(--fc-accent);
+        color: var(--fc-accent-ink);
+        transform: translateY(-2px);
+    }
 }
 
 .fc-profile-social a:active,
@@ -2062,9 +2171,17 @@ a.fc-pager-link:hover {
     height: 18px;
 }
 
-.fc-player-btn:hover {
-    transform: translateY(-2px);
-    filter: brightness(1.08);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-player-btn:hover {
+        transform: translateY(-2px);
+        filter: brightness(1.08);
+    }
+}
+
+.fc-player-btn:active {
+    transform: translateY(0) scale(0.94);
 }
 
 .fc-player-btn--main {
@@ -2242,8 +2359,16 @@ a.fc-pager-link:hover {
     height: 15px;
 }
 
-.fc-mini-btn:hover {
-    filter: brightness(1.08);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-mini-btn:hover {
+        filter: brightness(1.08);
+    }
+}
+
+.fc-mini-btn:active {
+    transform: scale(0.94);
 }
 
 /* 迷你播放条出现时，把主题的「回到顶部」按钮往上让一让 */
@@ -2481,10 +2606,26 @@ body.fc-has-player .fc-mini {
     color: #f7b8c9;
 }
 
-.fc-sakura-toggle:hover,
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备。
+   ⚠️ `:focus-visible` 必须留在门控**外面**：它不会被点按触发（浏览器只在键盘导航时才
+   匹配它），跟着 hover 一起关掉只会让「平板 + 外接键盘」的用户按 Tab 过来时看不到任何
+   焦点提示 —— 门控要修的是触摸屏的假悬停，不该顺手收走键盘焦点。
+   这一条在这里尤其要紧：#fc-sakura-toggle 是 <button>，没有别的 :focus 样式兜底。 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-sakura-toggle:hover {
+        opacity: 1;
+        transform: translateY(-2px);
+    }
+}
+
 .fc-sakura-toggle:focus-visible {
     opacity: 1;
     transform: translateY(-2px);
+}
+
+.fc-sakura-toggle:active {
+    transform: translateY(0) scale(0.94);
 }
 
 .fc-sakura-toggle svg {
@@ -2754,12 +2895,30 @@ body.fc-has-player .fc-mini {
     transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
-.fc-search-results li:hover,
-.fc-search-results li:focus-within,
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备。
+   `:focus-within` 跟着一起关是有意的：触摸屏点一下结果行，里面的 <a> 会拿到焦点，
+   `:focus-within` 照样会「粘」住 —— 那是同一个 bug 的另一个入口。 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-search-results li:hover,
+    .fc-search-results li:focus-within {
+        transform: translateY(-2px);
+        border-color: var(--fc-accent);
+        background: var(--fc-glass-bg-strong);
+    }
+}
+
+/* 但 `li.focus` 必须留在门控外面：那是主题脚本 fastsearch.js 给「方向键上下选结果」
+   加的类（fastsearch.js:64），只有键盘能触发，跟触摸无关。跟着 hover 关掉的话，
+   平板外接键盘用方向键选结果时光标是隐形的。 */
 .fc-search-results li.focus {
     transform: translateY(-2px);
     border-color: var(--fc-accent);
     background: var(--fc-glass-bg-strong);
+}
+
+.fc-search-results li:active {
+    transform: translateY(0) scale(0.99);
 }
 
 .fc-search-results li svg {
@@ -2927,15 +3086,23 @@ body.fc-has-mini .fc-statusbar-wrap {
     transition: transform 0.15s ease;
 }
 
-.fc-statusbar-link:hover {
-    background: var(--fc-accent);
-    border-color: var(--fc-accent);
-    color: var(--fc-accent-ink);
-    transform: translateY(-2px);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-statusbar-link:hover {
+        background: var(--fc-accent);
+        border-color: var(--fc-accent);
+        color: var(--fc-accent-ink);
+        transform: translateY(-2px);
+    }
 }
 
-.fc-statusbar-link:hover .fc-statusbar-link-arrow {
-    color: var(--fc-accent-ink);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-statusbar-link:hover .fc-statusbar-link-arrow {
+        color: var(--fc-accent-ink);
+    }
 }
 
 .fc-statusbar-link:active {
@@ -3136,8 +3303,16 @@ body.fc-has-mini .fc-statusbar-wrap {
     border-bottom: 0;
 }
 
-.fc-songlist-row:hover {
-    background: var(--fc-accent-soft);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-songlist-row:hover {
+        background: var(--fc-accent-soft);
+    }
+}
+
+.fc-songlist-row:active {
+    transform: scale(0.99);
 }
 
 .fc-songlist-row:focus-visible {
@@ -3227,14 +3402,30 @@ body.fc-has-mini .fc-statusbar-wrap {
 }
 
 /* 悬停 / 键盘聚焦：序号（或竖线）隐去，原位浮出播放按钮 */
-.fc-songlist-row:hover .fc-songlist-num,
-.fc-songlist-row:hover .fc-songlist-bars,
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备。
+   `:focus-visible` 拆到门控外面：.fc-songlist-row 是 <button>，点按**不会**让它匹配
+   :focus-visible，所以它没有「粘住」的风险；一起关掉只会让平板外接键盘的用户按 Tab
+   过来时看不见播放按钮（那行自己的 outline 还在，但控制项没了）。 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-songlist-row:hover .fc-songlist-num,
+    .fc-songlist-row:hover .fc-songlist-bars {
+        display: none;
+    }
+}
+
 .fc-songlist-row:focus-visible .fc-songlist-num,
 .fc-songlist-row:focus-visible .fc-songlist-bars {
     display: none;
 }
 
-.fc-songlist-row:hover .fc-songlist-play,
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-songlist-row:hover .fc-songlist-play {
+        display: block;
+    }
+}
+
 .fc-songlist-row:focus-visible .fc-songlist-play {
     display: block;
 }
@@ -3499,9 +3690,13 @@ body.fc-has-mini .fc-statusbar-wrap {
     border-radius: var(--fc-radius-pill);
 }
 
-.fc-clarity:hover,
-.fc-clarity:focus-within {
-    box-shadow: var(--fc-shadow-hover);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-clarity:hover,
+    .fc-clarity:focus-within {
+        box-shadow: var(--fc-shadow-hover);
+    }
 }
 
 body.fc-has-mini .fc-clarity {
@@ -3700,11 +3895,19 @@ body.fc-has-mini .fc-clarity {
     transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.fc-skill-link:hover,
-.fc-skill-link:focus-visible {
-    transform: translateY(-2px);
-    border-color: var(--fc-glass-stroke-hover);
-    box-shadow: var(--fc-shadow);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-skill-link:hover,
+    .fc-skill-link:focus-visible {
+        transform: translateY(-2px);
+        border-color: var(--fc-glass-stroke-hover);
+        box-shadow: var(--fc-shadow);
+    }
+}
+
+.fc-skill-link:active {
+    transform: translateY(0) scale(0.99);
 }
 
 .fc-skill-link:focus-visible {
@@ -3873,22 +4076,34 @@ body.fc-has-mini .fc-clarity {
 }
 
 /* 悬停 / 按下 / 键盘聚焦：与 .fc-profile-social 那一排图标按钮同一套手感 */
-.fc-profile-tag:hover {
-    background: var(--fc-accent);
-    border-color: var(--fc-accent);
-    color: var(--fc-accent-ink);
-    transform: translateY(-2px);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-profile-tag:hover {
+        background: var(--fc-accent);
+        border-color: var(--fc-accent);
+        color: var(--fc-accent-ink);
+        transform: translateY(-2px);
+    }
 }
 
-.fc-profile-tag:hover .fc-profile-tag-media {
-    background: var(--fc-accent-ink);
-    border-color: transparent;
-    color: var(--fc-accent);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-profile-tag:hover .fc-profile-tag-media {
+        background: var(--fc-accent-ink);
+        border-color: transparent;
+        color: var(--fc-accent);
+    }
 }
 
-.fc-profile-tag:hover .fc-profile-tag-arrow {
-    color: var(--fc-accent-ink);
-    opacity: 1;
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-profile-tag:hover .fc-profile-tag-arrow {
+        color: var(--fc-accent-ink);
+        opacity: 1;
+    }
 }
 
 .fc-profile-tag:active {
@@ -3973,11 +4188,15 @@ body.fc-has-mini .fc-clarity {
 }
 
 /* 悬停 / 按下 / 键盘聚焦：与那一排社交图标、公告小标签同一套手感 */
-.fc-profile-badge:hover {
-    background: var(--fc-accent);
-    border-color: var(--fc-accent);
-    color: var(--fc-accent-ink);
-    transform: translateY(-2px);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-profile-badge:hover {
+        background: var(--fc-accent);
+        border-color: var(--fc-accent);
+        color: var(--fc-accent-ink);
+        transform: translateY(-2px);
+    }
 }
 
 .fc-profile-badge:active {
@@ -4102,11 +4321,15 @@ dialog.fc-lightbox[open] {
     height: 18px;
 }
 
-.fc-lightbox-close:hover {
-    background: var(--fc-accent);
-    border-color: var(--fc-accent);
-    color: var(--fc-accent-ink);
-    transform: scale(1.06);
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .fc-lightbox-close:hover {
+        background: var(--fc-accent);
+        border-color: var(--fc-accent);
+        color: var(--fc-accent-ink);
+        transform: scale(1.06);
+    }
 }
 
 .fc-lightbox-close:active {
