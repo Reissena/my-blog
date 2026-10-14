@@ -4,7 +4,7 @@
    · **元素由模板决定要不要渲染**（layouts/single.html 里 `.Section == "posts"`
      才输出 #fc-progress），所以「首页 / 列表页 / 技能页 / 音乐页不显示」这件事
      在 HTML 层面就成立了，不靠脚本去猜「这是不是文章页」—— 脚本这里只负责
-     画宽度，它找不到元素就什么都不干。
+     推进度，它找不到元素就什么都不干。
    · 脚本**不能**在「找不到元素」时提前 return：访客可能是从首页 pjax 切进
      文章的，那时候元素才刚被插进来。所以用 MutationObserver 盯 main.main
      （pjax 换页就是它的 childList 变动，与 nav-posts.js 同一套路）重新找元素。
@@ -20,8 +20,8 @@
      所以尺寸是**量出来的**（ResizeObserver，退化成 resize 事件），不是写死的；
      CSS 里的 55px 只是「脚本还没跑到」时的兜底。
    · **pjax 换页必须重置**：#fc-progress 在 main.main 里，pjax 换页时整块被换掉，
-     新元素是新的 DOM、内联宽度本来就是空的；这里仍显式清一次 0，双保险。
-   · 尊重 prefers-reduced-motion：CSS 里那条 width 过渡会被 media query 关掉，
+     新元素是新的 DOM、内联 transform 本来就是空的；这里仍显式清一次 0，双保险。
+   · 尊重 prefers-reduced-motion：CSS 里那条 transform 过渡会被 media query 关掉，
      进度条变成「跟手即时到位」（不做动画本身也就是减少动效的写法）。
    ========================================================================== */
 (function () {
@@ -63,7 +63,11 @@
         if (!(p >= 0)) { p = 0; }          // NaN 兜底（滚动高度拿不到时）
         if (p > 1) { p = 1; }
         var pct = Math.round(p * 1000) / 10;
-        fill.style.width = pct + '%';
+        /* 写 transform 而不是 width：width 每帧都会触发重排（布局→重绘→合成），
+           scaleX 只走合成那一步。⚠️ 和 fluent.css 的 `.fc-progress-fill` 是**一对**：
+           那边宽度是死的 100%、进度靠 scaleX 表达，这边要是还写 width，
+           就会把元素缩成 0 宽，进度条直接消失 —— 改一边必须改两边。 */
+        fill.style.transform = 'scaleX(' + (pct / 100) + ')';
         /* 声明了 role="progressbar" 就得自己同步 aria-valuenow，否则读屏报旧值
            （与左下角清晰度滑块同一条约定） */
         if (bar) { bar.setAttribute('aria-valuenow', String(Math.round(pct))); }
@@ -80,8 +84,8 @@
         if (next !== bar) {
             bar = next;
             fill = bar ? bar.querySelector('.fc-progress-fill') : null;
-            /* pjax 刚换完页：从 A 文章切到 B 文章时，绝不能停在 A 的宽度上 */
-            if (fill) { fill.style.width = '0%'; }
+            /* pjax 刚换完页：从 A 文章切到 B 文章时，绝不能停在 A 的进度上 */
+            if (fill) { fill.style.transform = 'scaleX(0)'; }
             if (bar) { bar.setAttribute('aria-valuenow', '0'); }
         }
         syncHeader();
