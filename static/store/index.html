@@ -30,6 +30,17 @@
     </div>
   </header>
 
+  <!-- 左上角返回博客首页 -->
+  <a class="back-link" href="https://yunblog.com.cn/" title="返回东方夜话_Yunx站首页">&larr; 返回</a>
+
+  <!-- 天气面板收起后留在左边缘的竖把手（点它 / 鼠标移上去就滑出来） -->
+  <button class="panel-handle is-hidden" id="weatherHandle" type="button"
+    aria-controls="weatherPanel" aria-expanded="true" aria-label="展开「天气与时间」面板">
+    <span class="panel-handle-icon" id="handleWeatherIcon" aria-hidden="true">🌧️</span>
+    <span class="panel-handle-bar" aria-hidden="true"></span>
+    <span class="panel-handle-arrow" aria-hidden="true">›</span>
+  </button>
+
   <section class="panel weather-panel" id="weatherPanel" aria-label="天气与时间">
     <div class="panel-head">
       <span class="panel-title">WEATHER &amp; TIME</span>

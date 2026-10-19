@@ -110,12 +110,102 @@ html, body {
   left: 26px;
   top: 50%;
   transform: translateY(-50%);
-  animation: panel-in .9s var(--ease) both .25s;
+  /* ⚠️ fill-mode 必须是 backwards，不能是 both：
+     both 会把动画最后一帧（transform: translateY(-50%)）钉在元素上，
+     动画跑完之后就再也改不动 transform —— 下面 .is-collapsed 的位移会彻底失效。
+     backwards 只在 .25s 延迟那段兜住首帧，动画结束就把控制权还给正常样式。 */
+  animation: panel-in .9s var(--ease) backwards .25s;
+  transition: transform .55s var(--ease), visibility 0s;
 }
 @keyframes panel-in {
   from { opacity: 0; transform: translateY(-46%) translateX(-8px); }
   to { opacity: 1; transform: translateY(-50%) translateX(0); }
 }
+
+/* 闲置 5 秒后向左收起（计时在 js/ui.js 的 initWeatherDock 里）。
+   位移 = 面板自身宽度 + 它离左边缘的距离：整块刚好移出屏幕，而不是被裁一半。
+   pointer-events: none 是硬要求 —— 收起后那片区域要让给 canvas，
+   否则用户在那儿按左键拖不动场景（OrbitControls 只监听 canvas）。
+   visibility 用「0s 时长 + .55s 延迟」：滑动过程中它还看得见，滑完才真正隐藏，
+   顺手让键盘 Tab 也不会跳进一块屏幕外的面板里。 */
+.weather-panel.is-collapsed {
+  transform: translateY(-50%) translateX(calc(-100% - 26px));
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform .55s var(--ease), visibility 0s .55s;
+}
+
+/* ---------- 天气面板收起后的竖把手（左边缘） ---------- */
+.panel-handle {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  width: 30px;
+  padding: 11px 0 9px;
+  border-radius: 0 13px 13px 0;
+  border: 1px solid var(--line);
+  border-left: 0;
+  background: linear-gradient(160deg, rgba(18, 28, 48, 0.72), rgba(7, 11, 21, 0.8));
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+  color: #c9d6f2;
+  font: inherit;
+  cursor: pointer;
+  transition: opacity .35s var(--ease), transform .35s var(--ease), color .3s var(--ease), border-color .3s var(--ease);
+}
+.panel-handle-icon { font-size: 13px; line-height: 1; }
+.panel-handle-bar {
+  width: 1px;
+  height: 26px;
+  background: linear-gradient(180deg, rgba(173, 202, 255, 0.26), rgba(173, 202, 255, 0.05));
+}
+.panel-handle-arrow { font-size: 13px; line-height: 1; color: var(--sakura); }
+.panel-handle:hover { color: #fff; border-color: rgba(255, 179, 198, 0.45); }
+.panel-handle:active { transform: translateY(-50%) scale(.96); }
+/* 面板开着的时候把手让位（透明度 0 且不吃点击） */
+.panel-handle.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%) translateX(-8px);
+}
+
+/* ---------- 左上角「返回」：沿用面板那套深色玻璃 ---------- */
+.back-link {
+  position: absolute;
+  left: 26px;
+  top: max(22px, env(safe-area-inset-top));
+  z-index: 7;
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 15px 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, rgba(18, 28, 48, 0.72), rgba(7, 11, 21, 0.78));
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+  color: #c9d6f2;
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color .3s var(--ease), border-color .3s var(--ease), background .3s var(--ease), transform .28s var(--ease);
+}
+.back-link:hover {
+  color: #fff;
+  border-color: rgba(255, 179, 198, 0.45);
+  background: linear-gradient(160deg, rgba(30, 40, 62, 0.8), rgba(11, 16, 29, 0.85));
+  transform: translateY(-1px);
+}
+.back-link:active { transform: translateY(0) scale(.98); }
 
 .panel-head {
   display: flex;
@@ -544,6 +634,13 @@ html, body {
     padding: 13px;
     animation: none;
   }
+  /* 手机上 transform 是 none，收起时只走横向；位移同样是「宽度 + 16px」 */
+  .weather-panel.is-collapsed { transform: translateX(calc(-100% - 16px)); }
+  /* 面板挪到左下角了，把手跟着换成「与面板同一条底边」的锚点 */
+  .panel-handle { top: auto; bottom: 104px; transform: none; }
+  .panel-handle:active { transform: scale(.96); }
+  .panel-handle.is-hidden { transform: translateX(-8px); }
+  .back-link { left: 16px; top: max(14px, env(safe-area-inset-top)); height: 34px; }
   .brand { right: 16px; top: max(16px, env(safe-area-inset-top)); }
   .brand-text h1 { font-size: 12px; letter-spacing: 0.34em; }
   .brand-text p { display: none; }
@@ -564,6 +661,7 @@ html, body {
   .tool { width: 38px; height: 38px; }
   .tool::after { display: none; }
   .weather-panel { bottom: 92px; }
+  .panel-handle { bottom: 92px; }
   .panel-head { margin-bottom: 10px; }
   .panel-divider { margin: 10px 0; }
   .boot-sakura { transform: scale(.9); }
