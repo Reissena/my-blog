@@ -65,7 +65,14 @@
     /* 顺手把主题自身的布局变量调大一点，卡片列表更舒展 */
     --radius: 10px;
     --main-width: 860px;
-    --nav-width: 1120px;
+    /* 页头容器宽度。1120 → 1160 是给左上角「便利店」入口（.logo .fc-store）腾的地方：
+       8 项目录 766 + 品牌 227 + 主题按钮 36 + 两个 14px 间距 = 1057，1120 的内容盒只剩 63px，
+       而那个胶囊占 64 + 8.8px（.logo 的 column-gap）= 73px —— 不加宽就只能让主题按钮
+       掉到第二行、孤零零待在左边（实测 1280 / 1440 / 1920 全都会这样）。
+       加到 1160 后还余约 30px；再往上、>=1178px 视口就回到单行桌面版式。
+       ⚠️ 这个变量**只**被主题 header.css 的 `.header-nav { max-width }` 用到（本仓库另 0 处），
+       所以改它只影响页头宽度，正文 / 卡片一律不动。 */
+    --nav-width: 1160px;
 }
 
 [data-theme="dark"] {
@@ -365,6 +372,61 @@ body::after {
 }
 
 [data-theme="dark"] .theme-toggle {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* —— 「便利店」入口：左上角品牌右侧的独立胶囊（指向 /store/ 那一整页 3D 场景）——
+   为什么不放进 [[menu.main]]、也不塞进 .logo-switches：中间那条分段控件是「站内栏目」，
+   而 /store/ 是一整页自带 Three.js / importmap 的独立应用（连 main.main 都没有，
+   所以 layouts/_partials/header.html 里给它挂了 data-no-pjax）。
+   取值全部抄自紧挨着的两个同类元素，不新发明一套：
+     · 36px 高 / 圆角 pill / 1px 玻璃描边 —— 同 .theme-toggle
+     · 半透明白底 + 同一套 --fc-blur —— 同 .fc-segmented
+     · 悬停 --fc-glass-bg-strong、按下 scale(0.97) —— 也是上面两条在用的档位
+   ⚠️ 选择器必须写成 .logo .fc-store（0,2,0）：主题 header.css 里
+     `.header-nav a { display: block }` 和 `.logo a { font-size: 24px }` 都是 (0,1,1)，
+     只写 .fc-store 会被它们盖掉，结果是 24px 的方块字 + 上下错位。 */
+.logo .fc-store {
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    /* 横向内边距刻意收窄到 10px：整颗胶囊要压在 64px 宽以内，
+       1366 / 1440 / 1920 这些宽度上桌面页头才仍然是一行（算法见第 9 节断点注释） */
+    padding: 0 10px;
+    border: 1px solid var(--fc-glass-stroke);
+    border-radius: var(--fc-radius-pill);
+    background: rgba(255, 255, 255, 0.50);
+    -webkit-backdrop-filter: var(--fc-blur);
+    backdrop-filter: var(--fc-blur);
+    color: var(--secondary);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    /* 390px 窄屏上它和头像同一行：绝不允许「便利 / 店」折成两行把页头撑高 */
+    white-space: nowrap;
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+/* 悬停门控：触摸屏会把第一次点击「粘」成悬停，点完一直亮着，所以只给能真悬停的设备 */
+@media (hover: hover) and (pointer: fine) {
+
+    .logo .fc-store:hover {
+        background: var(--fc-glass-bg-strong);
+        color: var(--primary);
+    }
+}
+
+.logo .fc-store:active {
+    transform: scale(0.97);
+}
+
+.logo .fc-store:focus-visible {
+    outline: 2px solid var(--fc-accent);
+    outline-offset: 2px;
+}
+
+[data-theme="dark"] .logo .fc-store {
     background: rgba(255, 255, 255, 0.08);
 }
 
@@ -1588,15 +1650,21 @@ a.fc-pager-link:active {
 
 /* ------------------------------------------------------------- 9. 响应式 */
 /* ⚠️ 导航这一段**单独用 880px**，比下面那档 768px 宽 —— 原因：
-   导航涨到 8 项以后，那条分段控件自己就要 764px（每项 ≈95px：2 个汉字 14.5px
+   导航涨到 8 项以后，那条分段控件自己就要 766px（每项 ≈95px：2 个汉字 14.5px
    + 左右各 16px 内边距），再加页头左右各 24px 内边距，**视口窄于约 812px 时
    它连独占一整行都放不下**，会被 body 的 overflow-x: clip 悄悄裁掉最后一项
    （实测 800px 时「搜索」被切掉 14px，且没有任何渐隐提示，看着像点不到）。
    812~861px 这一段虽然不裁字，却会折成「品牌 / 导航 / 主题按钮」三行，很难看。
-   所以 880px 及以下直接走手机那套「品牌一行 + 导航独占一行的滑轨」：
-   实测 ≥1071px 单行放得下 8 项（品牌 195 + 导航 764 + 按钮 36 + 间距 28 + 内边距 48）；
-   881~1070px 页头折成两行（导航与主题按钮同一行，814 ≤ 视口−48）；
-   ≤880px 就是下面这段。
+   所以 880px 及以下直接走手机那套「品牌一行 + 导航独占一行的滑轨」。
+
+   ⚠️ 数字是 2026-10 加了左上角「便利店」胶囊之后**重新实测**的（下面那段 881~1177px
+   的补丁就是为它加的，别按旧数字「优化」回去）：
+     · 单行需要的宽度 = 品牌 227 + 8.8 + 便利店 64 + 14 + 导航 766 + 14 + 主题按钮 36 = 1129.8
+       → 视口 ≥ 1178px 单行放得下（页头 62px 高）—— 旧版没有胶囊时这个门槛是 1105px；
+     · 页头内容盒上限 = --nav-width 1160，所以 1168~1177px 这一段仍然折两行，
+       必须靠下面那段补丁把它们排成「手机那套」而不是「主题按钮单独掉一行」；
+     · 881~1177px 折成两行（品牌 + 便利店 + 主题按钮一行，导航独占一行，页头 108px 高）；
+     · ≤880px 就是下面这段。
    注意：卡片 / 头像 / 正文那些响应式仍然留在下面那档 768px，两者互不影响。 */
 @media screen and (max-width: 880px) {
     .header-nav {
@@ -1711,6 +1779,30 @@ a.fc-pager-link:active {
 
     .fc-brand-text {
         font-size: 15px;
+    }
+}
+
+/* 881~1177px：桌面版式放不下时的「补丁档」。
+   ---------------------------------------------------------------------------
+   为什么会有一段这样的区间：页头是 `.header-nav { flex-wrap: wrap }`，行是**按顺序贪心填**的。
+   加了左上角「便利店」胶囊之后，1129.8px 才能一行放下全部三块，于是中间出现一段
+   「品牌 + 便利店 + 导航挤得下、再加主题按钮就超出」的区间 —— 那时候主题按钮会
+   被单独甩到第二行最左边（实测 1200 / 1280 / 1440 / 1920 全部如此，页头还被撑到 98px），
+   这是最难看的失败态.
+   这里把导航撑满一整行（和 ≤880px 的手机版式同一套），主题按钮就留在第一行右侧：
+     第一行 = 品牌 + 便利店 + 主题按钮（space-between）
+     第二行 = 导航独占，页头 108px
+   ⚠️ 1177 这个上界是量出来的：视口 ≥1178px 时第一行本来就放得下全部三块，
+      再往下写就会把正常的桌面单行版式也改成两行。改胶囊宽度 / 加菜单项都要重新量它。 */
+@media screen and (min-width: 881px) and (max-width: 1177px) {
+    .header-nav {
+        row-gap: 8px;
+    }
+
+    .fc-nav-rail {
+        order: 3;
+        flex: 1 0 100%;
+        width: 100%;
     }
 }
 

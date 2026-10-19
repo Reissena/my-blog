@@ -87,6 +87,20 @@
                 {{- partial "avatar.html" (dict "class" "fc-brand-mark" "size" 28 "src" "images/logo.jpg") }}
                 <span class="fc-brand-text">{{ site.Title }}</span>
             </a>
+            {{- /* 「便利店」入口 —— 站在品牌名字右边，指向 static/store/ 那一页 3D 场景。
+               放在 .logo 里而不是菜单里：菜单那条是「站内栏目」的分段控件，
+               而 /store/ 是一整页独立应用（自带 Three.js + importmap，没有 main.main）。
+
+               ⚠️ data-no-pjax 不能删：pjax 的点击拦截是挂在 document 上的（assets/js/pjax.js），
+               它只替换 main.main。让它接管 /store/ 的结果是「取回一份 HTML、却什么也不渲染」
+               —— 3D 页面里没有 main.main，等于永远只有页头。pjax.js 的 target() 认这个属性，
+               有它这次点击就退化成普通整页跳转。
+
+               手机（≤880px）页头本来就是「品牌一行 + 导航独占一行」，
+               「便利店」跟着品牌留在第一行，不占导航那一行；
+               ≤480px 品牌文字隐藏后它照样在（那是 .fc-brand-text 的事，与它无关）。 */ -}}
+            <a class="fc-store" href="{{ "store/" | relURL }}" data-no-pjax
+                title="便利店 —— 日式便利店雨夜街角（3D）">便利店</a>
         </div>
 
         {{- /* 手机上导航放不下时变成横向滑轨：.fc-nav-rail 是滚动容器外面的定位层
