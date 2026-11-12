@@ -224,3 +224,50 @@
 <script defer src="{{ $lightboxjs.RelPermalink }}" integrity="{{ $lightboxjs.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- $progressjs := resources.Get "js/reading-progress.js" | resources.Minify | resources.Fingerprint -}}
 <script defer src="{{ $progressjs.RelPermalink }}" integrity="{{ $progressjs.Data.Integrity }}" crossorigin="anonymous"></script>
+
+{{- /* =====================================================================
+     音符入口：左下角浮动按钮，链接到音游页 /lucent/
+     ---------------------------------------------------------------------
+     · 纯 <a>，不需要 JS；放在 main.main 之外，pjax 换页也不会被替换
+     · 手机端上移，避开全宽的迷你播放条
+     ===================================================================== */ -}}
+<a class="fc-note-link" href="{{ "/lucent/" | relURL }}" title="RHYTHM PULSE · LUCENT 音游"
+   aria-label="打开音游 RHYTHM PULSE · LUCENT">&#9835;</a>
+<style>
+.fc-note-link {
+    position: fixed;
+    left: 20px;
+    bottom: 20px;
+    z-index: 55;
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 22px;
+    line-height: 1;
+    text-decoration: none;
+    color: var(--primary);
+    background: var(--fc-glass-bg-strong);
+    -webkit-backdrop-filter: var(--fc-blur);
+    backdrop-filter: var(--fc-blur);
+    border: 1px solid var(--fc-glass-stroke);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
+    transition: transform .16s ease, box-shadow .16s ease;
+}
+.fc-note-link:hover {
+    transform: translateY(-2px) scale(1.06);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .28);
+}
+.fc-note-link:active { transform: scale(.94); }
+@media screen and (max-width: 768px) {
+    .fc-note-link {
+        left: 12px;
+        bottom: 84px;
+        width: 42px;
+        height: 42px;
+        font-size: 20px;
+    }
+}
+</style>
